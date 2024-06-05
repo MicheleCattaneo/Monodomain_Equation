@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 
-from monodomain import e_ds, diseased_areas
+from monodomain import e_ds, diseased_areas, Tf
 
 
 def pad_with_boundaries(x_bc):
@@ -24,19 +24,19 @@ def pad_with_boundaries(x_bc):
     return np.concatenate(results)
 
 
-def get_collocation_points(dim, num_cp, num_b_cp):
+def get_collocation_points(num_cp, num_b_cp):
     # internal collocation points 
 
-    space = [(0., 1.)] * (dim + 1)  # +1 for time
+    space = [(0., Tf),(0., 1.),(0., 1.)]
     sampler = skopt.sampler.Hammersly(min_skip=-1, max_skip=-1)
     internal_points = np.array(sampler.generate(space, num_cp))
 
-    boundary = [(0., 1.)] * dim
+    boundary = [(0., Tf),(0., 1.)]
     bc_points = np.array(sampler.generate(boundary, num_b_cp))
 
-    # ic_points = np.concatenate([np.zeros_like(bc_points[:,0:1]), bc_points],axis=1)
 
     bc_points = pad_with_boundaries(bc_points)
+    print(bc_points)
 
     return internal_points[:, :1], internal_points[:, 1:], internal_points[:, :1], bc_points[:, 1:]
 
@@ -81,7 +81,10 @@ def plot_collocation_points(cp, mask):
 
 
 def get_test_points(points_per_dim):
-    grid_arrays = [np.linspace(0, 1, points_per_dim) for _ in range(3)]
+    grid_arrays = [np.linspace(0, Tf, points_per_dim),
+                   np.linspace(0, 1, points_per_dim),
+                   np.linspace(0, 1, points_per_dim)]
+    
     meshgrid_arrays = np.meshgrid(*grid_arrays, indexing='ij')
     test_collocation = np.vstack([elem.ravel() for elem in meshgrid_arrays]).T
     test_collocation = torch.tensor(test_collocation).to(torch.float32)
@@ -89,7 +92,7 @@ def get_test_points(points_per_dim):
 
 
 def get_data(num_cp=10000, num_b_cp=100, dim=2):
-    ip_t, ip_x, bc_t, bc_x = get_collocation_points(dim=dim, num_cp=num_cp, num_b_cp=num_b_cp)
+    ip_t, ip_x, bc_t, bc_x = get_collocation_points(num_cp=num_cp, num_b_cp=num_b_cp)
 
     mask = get_mask(ip_x, diseased_areas=diseased_areas)
 
@@ -99,7 +102,7 @@ def get_data(num_cp=10000, num_b_cp=100, dim=2):
 
 
 if __name__ == '__main__':
-    ip_t, ip_x, bc_t, bc_x = get_collocation_points(dim=2, num_cp=10000, num_b_cp=100)
+    ip_t, ip_x, bc_t, bc_x = get_collocation_points(num_cp=10, num_b_cp=10)
 
     diseased_areas = [{'center': np.array([0.3, 0.7]), 'radius': 0.1},
                       {'center': np.array([0.5, 0.5]), 'radius': 0.1},
