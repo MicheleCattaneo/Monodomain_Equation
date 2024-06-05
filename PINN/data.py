@@ -3,57 +3,58 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 
+from monodomain import e_ds, diseased_areas
+
 
 def pad_with_boundaries(x_bc):
     results = []
-    
-    for i in range(1,x_bc.shape[-1]+1):  
-        left_part = x_bc[:,:i]
-        right_part = x_bc[:,i:]
-        zeros_tensor = np.ones_like(x_bc[:,0:1])
+
+    for i in range(1, x_bc.shape[-1] + 1):
+        left_part = x_bc[:, :i]
+        right_part = x_bc[:, i:]
+        zeros_tensor = np.ones_like(x_bc[:, 0:1])
         results.append(np.concatenate((left_part, zeros_tensor, right_part), axis=1))
-        
-    for i in range(1,x_bc.shape[-1]+1):  
-        left_part = x_bc[:,:i]
-        right_part = x_bc[:,i:]
-        zeros_tensor = np.zeros_like(x_bc[:,0:1])
+
+    for i in range(1, x_bc.shape[-1] + 1):
+        left_part = x_bc[:, :i]
+        right_part = x_bc[:, i:]
+        zeros_tensor = np.zeros_like(x_bc[:, 0:1])
         results.append(np.concatenate((left_part, zeros_tensor, right_part), axis=1))
-        
+
     return np.concatenate(results)
 
 
 def get_collocation_points(dim, num_cp, num_b_cp):
     # internal collocation points 
 
-    space = [(0., 1.)] * (dim+1) # +1 for time
+    space = [(0., 1.)] * (dim + 1)  # +1 for time
     sampler = skopt.sampler.Hammersly(min_skip=-1, max_skip=-1)
     internal_points = np.array(sampler.generate(space, num_cp))
 
-
-    boundary = [(0., 1.)]*dim
-    bc_points = np.array(sampler.generate(boundary , num_b_cp))
+    boundary = [(0., 1.)] * dim
+    bc_points = np.array(sampler.generate(boundary, num_b_cp))
 
     # ic_points = np.concatenate([np.zeros_like(bc_points[:,0:1]), bc_points],axis=1)
 
     bc_points = pad_with_boundaries(bc_points)
 
     return internal_points[:, :1], internal_points[:, 1:], internal_points[:, :1], bc_points[:, 1:]
-    
 
-def get_mask(points, deseased_areas):
 
-    def is_in(point,center, radius):
-        distance = np.sqrt(np.sum((point-center)**2))
+def get_mask(points, diseased_areas):
+    def is_in(point, center, radius):
+        distance = np.sqrt(np.sum((point - center) ** 2))
         return distance <= radius
 
     masks = []
-    for i, des_area in enumerate(deseased_areas):
+    for i, des_area in enumerate(diseased_areas):
         center = des_area['center']
         radius = des_area['radius']
-        mask = np.apply_along_axis(lambda x: i+1 if is_in(x, center, radius) else 0, axis=1, arr=points)
+        mask = np.apply_along_axis(lambda x: i + 1 if is_in(x, center, radius) else 0, axis=1, arr=points)
 
         masks.append(mask)
-    return np.sum(np.stack(masks),axis=0)
+    return np.sum(np.stack(masks), axis=0)
+
 
 def get_electrical_diffusivity_mask(mask, e_ds):
     return e_ds[mask]
@@ -80,30 +81,36 @@ def plot_collocation_points(cp, mask):
 
 
 def get_test_points(points_per_dim):
-    grid_arrays = [np.linspace(0, 1, points_per_dim) for _ in range(2)]
+    grid_arrays = [np.linspace(0, 1, points_per_dim) for _ in range(3)]
     meshgrid_arrays = np.meshgrid(*grid_arrays, indexing='ij')
     test_collocation = np.vstack([elem.ravel() for elem in meshgrid_arrays]).T
     test_collocation = torch.tensor(test_collocation).to(torch.float32)
     return test_collocation
 
-if __name__ == '__main__':
 
+def get_data(num_cp=10000, num_b_cp=100, dim=2):
+    ip_t, ip_x, bc_t, bc_x = get_collocation_points(dim=dim, num_cp=num_cp, num_b_cp=num_b_cp)
+
+    mask = get_mask(ip_x, diseased_areas=diseased_areas)
+
+    e_d_masks = get_electrical_diffusivity_mask(mask=mask, e_ds=e_ds)
+
+    return ip_t, ip_x, bc_t, bc_x, e_d_masks
+
+
+if __name__ == '__main__':
     ip_t, ip_x, bc_t, bc_x = get_collocation_points(dim=2, num_cp=10000, num_b_cp=100)
 
+    diseased_areas = [{'center': np.array([0.3, 0.7]), 'radius': 0.1},
+                      {'center': np.array([0.5, 0.5]), 'radius': 0.1},
+                      {'center': np.array([0.7, 0.3]), 'radius': 0.15}]
 
-    deseased_areas=[{'center': np.array([0.3, 0.7]), 'radius': 0.1},
-                    {'center': np.array([0.5, 0.5]), 'radius': 0.1},
-                    {'center': np.array([0.7, 0.3]), 'radius': 0.15}]
-
-    mask = get_mask(ip_x, deseased_areas=deseased_areas)
+    mask = get_mask(ip_x, diseased_areas=diseased_areas)
 
     plot_collocation_points(ip_x, mask=mask)
 
     print(mask.shape)
 
-    e_d_masks = get_electrical_diffusivity_mask(mask=mask, e_ds=np.array([9.5298e-4, 
-                                                                 9.5298e-3,
-                                                                 9.5298e-4,
-                                                                 9.5298e-5]))
-    
+    e_d_masks = get_electrical_diffusivity_mask(mask=mask, e_ds=e_ds)
+
     print(e_d_masks.shape)
