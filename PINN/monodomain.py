@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 Tf = 35
 
@@ -7,6 +8,16 @@ A = 18.515
 Fr = 0
 Ft = 0.2383
 Fd = 1
+
+e_ds=np.array([9.5298e-4, 
+                9.5298e-3,
+                9.5298e-4,
+                9.5298e-5])
+
+
+deseased_areas=[{'center': np.array([0.3, 0.7]), 'radius': 0.1},
+                {'center': np.array([0.5, 0.5]), 'radius': 0.1},
+                {'center': np.array([0.7, 0.3]), 'radius': 0.15}]
 
 
 def pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma_d: torch.Tensor) -> torch.Tensor:
