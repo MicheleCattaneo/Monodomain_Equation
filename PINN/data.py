@@ -1,6 +1,7 @@
 import skopt
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
 
 
 def pad_with_boundaries(x_bc):
@@ -77,6 +78,13 @@ def plot_collocation_points(cp, mask):
 
     plt.show()
 
+
+def get_test_points(points_per_dim):
+    grid_arrays = [np.linspace(0, 1, points_per_dim) for _ in range(2)]
+    meshgrid_arrays = np.meshgrid(*grid_arrays, indexing='ij')
+    test_collocation = np.vstack([elem.ravel() for elem in meshgrid_arrays]).T
+    test_collocation = torch.tensor(test_collocation).to(torch.float32)
+    return test_collocation
 
 if __name__ == '__main__':
 
