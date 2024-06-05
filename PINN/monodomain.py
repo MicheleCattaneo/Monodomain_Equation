@@ -23,5 +23,19 @@ def f(u: torch.Tensor) -> torch.Tensor:
     return A * (u - Fr) * (u - Ft) * (u - Fd)
 
 
+def u0(x: torch.Tensor) -> torch.Tensor:
+    return (x >= 0.9).all().float()
+
+
+def neumann_bc(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
+    # ∇u = 0
+    ux = torch.autograd.grad(u, x, grad_outputs=torch.ones_like(u), create_graph=True)[0]
+    return ux
+
+
 def loss(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma_d: torch.Tensor) -> torch.Tensor:
     return torch.nn.functional.mse_loss(pde(u, x, t, sigma_d), torch.zeros_like(u))
+
+
+def neumann_loss(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
+    return torch.nn.functional.mse_loss(neumann_bc(u, x), torch.zeros_like(u))
