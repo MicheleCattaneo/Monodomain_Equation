@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from monodomain import u0, Tf
 
 
 class PINN(nn.Module):
@@ -16,7 +17,6 @@ class PINN(nn.Module):
 
         self.layers = nn.Sequential(*layers)
 
-
         self.initialize_weights()
 
     def initialize_weights(self):
@@ -26,14 +26,15 @@ class PINN(nn.Module):
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
 
-    def forward(self, x):
-        return self.layers(x)
-
-
+    def forward(self, x, t):
+        out = self.layers(torch.cat([x, t], dim=1))
+        return (1 - t/Tf) * u0(x) + t/Tf * out
 
 
 if __name__ == '__main__':
 
-    pinn = PINN(10, [16]*8, 1)
+    pinn = PINN(3, [16]*8, 1)
+
+    print(pinn(torch.rand(10, 2), torch.tensor([[0.]*5 + [1]*5]).T))
 
     print(pinn)

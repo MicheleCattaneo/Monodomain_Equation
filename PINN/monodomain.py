@@ -1,5 +1,6 @@
 import torch
 
+Tf = 35
 
 SIGMA_H = 9.5298e-4
 A = 18.515

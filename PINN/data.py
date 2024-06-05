@@ -2,9 +2,6 @@ import skopt
 import numpy as np
 import matplotlib.pyplot as plt
 
-def u_0(x):
-    return 1 if (x[0] >= 0.9 and x[1] >= 0.9) else 0
-
 
 def pad_with_boundaries(x_bc):
     results = []
