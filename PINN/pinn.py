@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 from monodomain import u0, Tf
+from data import get_test_points
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 class PINN(nn.Module):
@@ -29,12 +32,36 @@ class PINN(nn.Module):
     def forward(self, x, t):
         out = self.layers(torch.cat([x, t], dim=1))
         return (1 - t/Tf) * u0(x) + t/Tf * out
+    
+
+    def visualize(self, x, grid_shape):
+        with torch.no_grad():
+            out = self.layers(x)
+            print(out.shape)
+
+            out = out.reshape(grid_shape)
+#     
+            grid_arrays = [np.linspace(0, 1, grid_shape[1]),
+                            np.linspace(0, 1, grid_shape[2])]
+
+            X_grid, Y_grid = np.meshgrid(*grid_arrays, indexing='ij')
+
+
+            fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+
+            print(out.shape)
+            ax.plot_surface(X_grid, Y_grid, out[50,:,:].cpu().detach(), cmap='viridis') 
+            plt.show()
+
+
+
 
 
 if __name__ == '__main__':
 
+    test_data, meshgrid_shape = get_test_points(100)
+
+
     pinn = PINN(3, [16]*8, 1)
 
-    print(pinn(torch.rand(10, 2), torch.tensor([[0.]*5 + [1]*5]).T))
-
-    print(pinn)
+    pinn.visualize(test_data, grid_shape=meshgrid_shape)
