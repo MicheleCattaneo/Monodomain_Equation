@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 from monodomain import loss_pde, loss_neumann
-from data import MonodomainDataset
+from data import MonodomainDataset, get_test_points
 from pinn import PINN
 
 
@@ -50,8 +50,8 @@ class Monodomain(pl.LightningModule):
         opt1.zero_grad()
         opt2.zero_grad()
 
-        print(self.w_pde.item())
-        print(self.w_bc.item())
+        # print(self.w_pde.item())
+        # print(self.w_bc.item())
 
         return loss
 
@@ -67,12 +67,12 @@ class Monodomain(pl.LightningModule):
     
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(MonodomainDataset(num_cp=10_000, num_b_cp=5_000), batch_size=10000, shuffle=True)
+        return torch.utils.data.DataLoader(MonodomainDataset(num_cp=10_000, num_b_cp=5_000), batch_size=1000, shuffle=True)
 
 
 if __name__ == '__main__':
 
-    model = Monodomain()
+    model = Monodomain(lr=8e-4, hidden_sizes=[32]*4)
 
     trainer = pl.Trainer(
         max_epochs=100,
@@ -80,3 +80,6 @@ if __name__ == '__main__':
     )
 
     trainer.fit(model)
+
+    test_data, meshgrid_shape = get_test_points(100)
+    model.model.visualize(test_data, grid_shape=meshgrid_shape, timestep_indx=0)

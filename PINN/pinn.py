@@ -34,7 +34,7 @@ class PINN(nn.Module):
         return (1 - t/Tf) * u0(x) + t/Tf * out
     
 
-    def visualize(self, x, grid_shape):
+    def visualize(self, x, grid_shape, timestep_indx=0):
         with torch.no_grad():
             out = self.layers(x)
             print(out.shape)
@@ -50,7 +50,7 @@ class PINN(nn.Module):
             fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 
             print(out.shape)
-            ax.plot_surface(X_grid, Y_grid, out[50,:,:].cpu().detach(), cmap='viridis') 
+            ax.plot_surface(X_grid, Y_grid, out[timestep_indx,:,:].cpu().detach(), cmap='viridis') 
             plt.show()
 
 
