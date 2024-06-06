@@ -101,6 +101,20 @@ def get_data(num_cp=10000, num_b_cp=100, dim=2):
     return ip_t, ip_x, bc_t, bc_x, e_d_masks
 
 
+class MonodomainDataset(torch.utils.data.Dataset):
+    def __init__(self, num_cp=10000, num_b_cp=100, dim=2):
+        self.ip_t, self.ip_x, self.bc_t, self.bc_x, self.e_d_masks = get_data(num_cp=num_cp, num_b_cp=num_b_cp, dim=dim)
+
+    def __len__(self):
+        return len(self.ip_t)
+
+    def __getitem__(self, idx):
+        return list(map(
+            lambda x: torch.tensor(x).to(torch.float32).requires_grad_(True),
+            (self.ip_x[idx], self.ip_t[idx], self.bc_x[idx], self.bc_t[idx], self.e_d_masks[idx])
+        ))
+
+
 if __name__ == '__main__':
     ip_t, ip_x, bc_t, bc_x = get_collocation_points(num_cp=10, num_b_cp=10)
 

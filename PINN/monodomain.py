@@ -24,7 +24,7 @@ def pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma_d: torch.Tensor
     ut = torch.autograd.grad(u, t, grad_outputs=torch.ones_like(u), create_graph=True)[0]
 
     uxx_h = torch.autograd.grad(ux * SIGMA_H, x, grad_outputs=torch.ones_like(ux), create_graph=True)[0]
-    uxx_d = torch.autograd.grad(ux * sigma_d, x, grad_outputs=torch.ones_like(ux), create_graph=True)[0]
+    uxx_d = torch.autograd.grad(ux * sigma_d.unsqueeze(-1), x, grad_outputs=torch.ones_like(ux), create_graph=True)[0]
 
     return uxx_h + uxx_d - f(u) - ut
 
@@ -44,8 +44,8 @@ def neumann_bc(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
 
 
 def loss_pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma_d: torch.Tensor) -> torch.Tensor:
-    return torch.nn.functional.mse_loss(pde(u, x, t, sigma_d), torch.zeros_like(u))
+    return torch.nn.functional.mse_loss(pde(u, x, t, sigma_d), torch.zeros_like(x))
 
 
 def loss_neumann(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
-    return torch.nn.functional.mse_loss(neumann_bc(u, x), torch.zeros_like(u))
+    return torch.nn.functional.mse_loss(neumann_bc(u, x), torch.zeros_like(x))
