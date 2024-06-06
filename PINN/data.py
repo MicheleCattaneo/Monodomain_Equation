@@ -36,7 +36,7 @@ def get_collocation_points(num_cp, num_b_cp):
 
     bc_points = pad_with_boundaries(bc_points)
 
-    return internal_points[:, :1], internal_points[:, 1:], internal_points[:, :1], bc_points[:, 1:]
+    return internal_points[:, :1], internal_points[:, 1:], bc_points[:, :1], bc_points[:, 1:]
 
 
 def get_mask(points, diseased_areas):
