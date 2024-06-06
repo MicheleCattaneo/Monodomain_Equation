@@ -27,16 +27,14 @@ def pad_with_boundaries(x_bc):
 def get_collocation_points(num_cp, num_b_cp):
     # internal collocation points 
 
-    space = [(0., Tf),(0., 1.),(0., 1.)]
+    space = [(0., Tf), (0., 1.), (0., 1.)]
     sampler = skopt.sampler.Hammersly(min_skip=-1, max_skip=-1)
     internal_points = np.array(sampler.generate(space, num_cp))
 
-    boundary = [(0., Tf),(0., 1.)]
+    boundary = [(0., Tf), (0., 1.)]
     bc_points = np.array(sampler.generate(boundary, num_b_cp))
 
-
     bc_points = pad_with_boundaries(bc_points)
-    print(bc_points)
 
     return internal_points[:, :1], internal_points[:, 1:], internal_points[:, :1], bc_points[:, 1:]
 
@@ -84,7 +82,7 @@ def get_test_points(points_per_dim):
     grid_arrays = [np.linspace(0, Tf, points_per_dim),
                    np.linspace(0, 1, points_per_dim),
                    np.linspace(0, 1, points_per_dim)]
-    
+
     meshgrid_arrays = np.meshgrid(*grid_arrays, indexing='ij')
     test_collocation = np.vstack([elem.ravel() for elem in meshgrid_arrays]).T
     test_collocation = torch.tensor(test_collocation).to(torch.float32)
