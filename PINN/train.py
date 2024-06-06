@@ -14,6 +14,11 @@ class Monodomain(pl.LightningModule):
         self.model = PINN(3, hidden_sizes, 1)
         self.lr = lr
 
+        self.w_pde = nn.Parameter(torch.Tensor([1]))
+        self.w_bc = nn.Parameter(torch.Tensor([1]))
+
+        self.automatic_optimization = False
+
     def training_step(self, batch, batch_idx):
         x, t, xbc, tbc, sigma_d = batch
         u = self.model(x, t)
@@ -22,16 +27,47 @@ class Monodomain(pl.LightningModule):
         ubc = self.model(xbc, tbc)
         loss_bc = loss_neumann(ubc, xbc)
 
-        loss = loss_domain + loss_bc * 5
+        loss = self.w_pde * loss_domain + self.w_bc* loss_bc
+
+
+        opt1, opt2 = self.optimizers()
 
         self.log('train_loss', loss, prog_bar=True)
+        self.log('loss_pde', loss_domain, prog_bar=True)
+        self.log('loss_bc', loss_bc, prog_bar=True)
+
+
+        self.manual_backward(loss)
+        opt1.step()
+
+
+        self.w_pde.grad = -self.w_pde.grad
+        self.w_bc.grad = -self.w_bc.grad
+
+        opt2.step()
+
+
+        opt1.zero_grad()
+        opt2.zero_grad()
+
+        print(self.w_pde.item())
+        print(self.w_bc.item())
+
         return loss
 
+    # def configure_optimizers(self):
+    #     return torch.optim.Adam(self.model.parameters(), lr=self.lr)
+    
     def configure_optimizers(self):
-        return torch.optim.Adam(self.model.parameters(), lr=self.lr)
+        # Optimizer for model parameters
+        optimizer1 = torch.optim.Adam(self.model.parameters(), lr=self.lr)
+        # Optimizer for ascent parameters
+        optimizer2 = torch.optim.Adam([self.w_pde, self.w_bc], lr=0.01)
+        return [optimizer1, optimizer2]
+    
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(MonodomainDataset(num_cp=10_000, num_b_cp=5_000), batch_size=1000, shuffle=True)
+        return torch.utils.data.DataLoader(MonodomainDataset(num_cp=10_000, num_b_cp=5_000), batch_size=10000, shuffle=True)
 
 
 if __name__ == '__main__':
@@ -39,8 +75,8 @@ if __name__ == '__main__':
     model = Monodomain()
 
     trainer = pl.Trainer(
-        max_epochs=10,
-        accelerator='cpu'
+        max_epochs=100,
+        accelerator='gpu'
     )
 
     trainer.fit(model)
