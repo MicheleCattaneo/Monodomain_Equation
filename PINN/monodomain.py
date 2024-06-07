@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-Tf = 35
+Tf = 1
 
 SIGMA_H = 9.5298e-4
 A = 18.515
@@ -34,7 +34,7 @@ def f(u: torch.Tensor) -> torch.Tensor:
 
 
 def u0(x: torch.Tensor) -> torch.Tensor:
-    return (x >= 0.9).all().float()
+    return (x >= 0.9).all(dim=1).float().unsqueeze(-1)
 
 
 def neumann_bc(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:

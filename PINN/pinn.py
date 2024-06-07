@@ -36,8 +36,7 @@ class PINN(nn.Module):
 
     def visualize(self, x, grid_shape, timestep_indx=0):
         with torch.no_grad():
-            out = self.layers(x)
-            print(out.shape)
+            out = self.forward(x=x[:,1:], t=x[:,0:1])
 
             out = out.reshape(grid_shape)
 #     
@@ -49,7 +48,6 @@ class PINN(nn.Module):
 
             fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 
-            print(out.shape)
             ax.plot_surface(X_grid, Y_grid, out[timestep_indx,:,:].cpu().detach(), cmap='viridis') 
             plt.show()
 
@@ -59,9 +57,15 @@ class PINN(nn.Module):
 
 if __name__ == '__main__':
 
-    test_data, meshgrid_shape = get_test_points(100)
+    test_data, meshgrid_shape = get_test_points(10)
 
 
     pinn = PINN(3, [16]*8, 1)
 
-    pinn.visualize(test_data, grid_shape=meshgrid_shape)
+    ic_x = torch.Tensor([[0.91,0.91],[0.5,0.9],[0.3,0.3],[0.2,0.9]])
+    ic_t = torch.Tensor([[0],[0],[0],[0]])
+
+    print(pinn(x=ic_x, t=ic_t))
+
+    print(test_data)
+    pinn.visualize(test_data, grid_shape=meshgrid_shape, timestep_indx=0)
