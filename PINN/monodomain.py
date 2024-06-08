@@ -9,7 +9,8 @@ Fr = 0
 Ft = 0.2383
 Fd = 1
 
-e_ds = np.array([9.5298e-4, 9.5298e-3, 9.5298e-4, 9.5298e-5])
+# e_ds = np.array([9.5298e-4, 9.5298e-3, 9.5298e-4, 9.5298e-5])
+e_ds = np.array([9.5298e-4]*4)
 
 diseased_areas = [
     {'center': np.array([0.3, 0.7]), 'radius': 0.1},
@@ -44,7 +45,8 @@ def neumann_bc(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
 
 
 def loss_pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma_d: torch.Tensor) -> torch.Tensor:
-    return torch.nn.functional.mse_loss(pde(u, x, t, sigma_d), torch.zeros_like(x))
+    residual = pde(u, x, t, sigma_d)
+    return torch.nn.functional.mse_loss(residual, torch.zeros_like(residual))
 
 
 def loss_neumann(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
