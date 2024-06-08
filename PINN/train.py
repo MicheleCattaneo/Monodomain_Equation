@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 from monodomain import loss_pde, loss_neumann
-from data import MonodomainDataset, get_test_points
+from data import MonodomainDataset, get_test_points, get_data
 from pinn import PINN
 
 
@@ -14,13 +14,28 @@ class Monodomain(pl.LightningModule):
         self.model = PINN(3, hidden_sizes, 1)
         self.lr = lr
 
-        self.w_pde = nn.Parameter(torch.Tensor([1]))
+        self.w_pde = nn.Parameter(torch.Tensor([5]))
         self.w_bc = nn.Parameter(torch.Tensor([1]))
+
+
+        self.ip_t, self.ip_x, self.bc_t, self.bc_x, self.e_d_masks = get_data(num_cp=10_000, num_b_cp=500, dim=2)
 
         self.automatic_optimization = False
 
     def training_step(self, batch, batch_idx):
-        x, t, xbc, tbc, sigma_d = batch
+        # x, t, xbc, tbc, sigma_d = batch
+        x, t, xbc, tbc, sigma_d = self.ip_t, self.ip_x, self.bc_t, self.bc_x, self.e_d_masks
+
+
+        cuda = torch.device('cuda')
+
+
+        x = torch.tensor(x).to(cuda).to(torch.float32).requires_grad_(True)
+        t = torch.tensor(t).to(cuda).to(torch.float32).requires_grad_(True)
+        xbc = torch.tensor(xbc).to(cuda).to(torch.float32).requires_grad_(True)
+        tbc = torch.tensor(tbc).to(cuda).to(torch.float32).requires_grad_(True)
+        sigma_d = torch.tensor(sigma_d).to(cuda).to(torch.float32).requires_grad_(True)
+
         u = self.model(x, t)
 
         loss_domain = loss_pde(u, x, t, sigma_d)
@@ -67,15 +82,15 @@ class Monodomain(pl.LightningModule):
     
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(MonodomainDataset(num_cp=10_000, num_b_cp=5_000), batch_size=1000000, shuffle=True)
+        return torch.utils.data.DataLoader(MonodomainDataset(num_cp=5_000, num_b_cp=5_000), batch_size=1000000, shuffle=True)
 
 
 if __name__ == '__main__':
 
-    model = Monodomain(lr=5e-4, hidden_sizes=[32]*4)
+    model = Monodomain(lr=1e-4, hidden_sizes=[128]*2)
 
     trainer = pl.Trainer(
-        max_epochs=50,
+        max_epochs=1000,
         accelerator='gpu'
     )
 
