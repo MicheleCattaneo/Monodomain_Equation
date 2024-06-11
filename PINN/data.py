@@ -85,7 +85,7 @@ def get_test_points(points_per_dim):
 
     meshgrid_arrays = np.meshgrid(*grid_arrays, indexing='ij')
     test_collocation = np.vstack([elem.ravel() for elem in meshgrid_arrays]).T
-    test_collocation = torch.tensor(test_collocation).to(torch.float32)
+    test_collocation = torch.tensor(test_collocation).to(torch.float64)
     return test_collocation, meshgrid_arrays[0].shape
 
 

@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
+    torch.set_default_dtype(torch.float64)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = PINN(in_size=3, hidden_sizes=[24]*2, out_size=1)
 
@@ -16,11 +18,11 @@ if __name__ == "__main__":
 
     t, x, tbc, xbc, sigma_d = get_data(num_cp=1_000, num_b_cp=100, dim=2)
 
-    x = torch.tensor(x).to(device).to(torch.float32).requires_grad_(True)
-    t = torch.tensor(t).to(device).to(torch.float32).requires_grad_(True)
-    xbc = torch.tensor(xbc).to(device).to(torch.float32).requires_grad_(True)
-    tbc = torch.tensor(tbc).to(device).to(torch.float32).requires_grad_(True)
-    sigma_d = torch.tensor(sigma_d).to(device).to(torch.float32).requires_grad_(True)
+    x = torch.tensor(x).to(device).to(torch.float64).requires_grad_(True)
+    t = torch.tensor(t).to(device).to(torch.float64).requires_grad_(True)
+    xbc = torch.tensor(xbc).to(device).to(torch.float64).requires_grad_(True)
+    tbc = torch.tensor(tbc).to(device).to(torch.float64).requires_grad_(True)
+    sigma_d = torch.tensor(sigma_d).to(device).to(torch.float64).requires_grad_(True)
 
 
     w_pde = torch.nn.Parameter(torch.tensor([100.0], requires_grad=True))
