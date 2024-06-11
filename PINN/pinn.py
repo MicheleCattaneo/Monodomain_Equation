@@ -3,6 +3,7 @@ import torch.nn as nn
 from monodomain import u0, Tf
 from data import get_test_points
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 import numpy as np
 
 
@@ -31,12 +32,14 @@ class PINN(nn.Module):
 
     def forward(self, x, t):
         out = self.layers(torch.cat([x, t], dim=1))
-        return (1 - t/Tf) * u0(x) + t/Tf * out
+        return u0(x) + t * out
+        # return out
     
 
     def visualize(self, x, grid_shape, timestep_indx=0):
         with torch.no_grad():
             out = self.forward(x=x[:,1:], t=x[:,0:1])
+            # out = self.layers(torch.cat([x[:,1:],x[:,0:1]], dim=1))
 
             out = out.reshape(grid_shape)
 #     
@@ -50,6 +53,42 @@ class PINN(nn.Module):
 
             ax.plot_surface(X_grid, Y_grid, out[timestep_indx,:,:].cpu().detach(), cmap='viridis') 
             plt.show()
+
+    def visualize_animate(self, x, grid_shape):
+
+        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+
+
+        
+
+
+
+        with torch.no_grad():
+            out = self.forward(x=x[:,1:], t=x[:,0:1])
+            # out = self.layers(torch.cat([x[:,1:],x[:,0:1]], dim=1))
+
+            out = out.reshape(grid_shape)
+#     
+            grid_arrays = [np.linspace(0, 1, grid_shape[1]),
+                            np.linspace(0, 1, grid_shape[2])]
+
+            X_grid, Y_grid = np.meshgrid(*grid_arrays, indexing='ij')
+
+            def update_surface(timestep_indx):
+                ax.clear()
+                ax.plot_surface(X_grid, Y_grid, out[timestep_indx,:,:].cpu().detach(), cmap='viridis') 
+
+                plt.title(f'Timestep = {timestep_indx}')
+
+
+            def update(indx):
+                update_surface(indx)
+
+            
+            ani = FuncAnimation(fig, update, frames=out.shape[0], repeat=True)
+
+            plt.show()
+
 
 
 
