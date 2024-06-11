@@ -50,13 +50,13 @@ classdef Mesh2D < handle
         % Method to plot the mesh using trimesh
         function plotMesh(obj)
             close all
-            trimesh(obj.meshElements’, obj.vertices(1 , :), obj.vertices(2 , :));
+            trimesh(obj.meshElements', obj.vertices(1 , :), obj.vertices(2 , :));
             axis equal
         end
 
         % Method to plot the mesh with solution values using trimesh
         function plotSolution(obj, solution)
-            trimesh(obj.meshElements’, obj.vertices(1 , :), obj.vertices(2 , :), solution);
+            trimesh(obj.meshElements', obj.vertices(1 , :), obj.vertices(2 , :), solution);
         end
     end
 end
