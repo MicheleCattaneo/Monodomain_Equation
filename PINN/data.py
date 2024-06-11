@@ -104,12 +104,12 @@ class MonodomainDataset(torch.utils.data.Dataset):
         self.ip_t, self.ip_x, self.bc_t, self.bc_x, self.e_d_masks = get_data(num_cp=num_cp, num_b_cp=num_b_cp, dim=dim)
 
     def __len__(self):
-        return len(self.ip_t)
+        return 1
 
     def __getitem__(self, idx):
         return list(map(
             lambda x: torch.tensor(x).to(torch.float32).requires_grad_(True),
-            (self.ip_x[idx], self.ip_t[idx], self.bc_x[idx], self.bc_t[idx], self.e_d_masks[idx])
+            (self.ip_x, self.ip_t, self.bc_x, self.bc_t, self.e_d_masks)
         ))
 
 

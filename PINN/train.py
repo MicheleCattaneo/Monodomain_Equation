@@ -23,18 +23,11 @@ class Monodomain(pl.LightningModule):
         self.automatic_optimization = False
 
     def training_step(self, batch, batch_idx):
-        # x, t, xbc, tbc, sigma_d = batch
-        x, t, xbc, tbc, sigma_d = self.ip_t, self.ip_x, self.bc_t, self.bc_x, self.e_d_masks
+        t, x, tbc, xbc, sigma_d = batch
 
+        x, t, xbc, tbc, sigma_d = x[0], t[0], xbc[0], tbc[0], sigma_d[0]
 
-        cuda = torch.device('cuda')
-
-
-        x = torch.tensor(x).to(cuda).to(torch.float32).requires_grad_(True)
-        t = torch.tensor(t).to(cuda).to(torch.float32).requires_grad_(True)
-        xbc = torch.tensor(xbc).to(cuda).to(torch.float32).requires_grad_(True)
-        tbc = torch.tensor(tbc).to(cuda).to(torch.float32).requires_grad_(True)
-        sigma_d = torch.tensor(sigma_d).to(cuda).to(torch.float32).requires_grad_(True)
+        # t, x, tbc, xbc, sigma_d = self.ip_t, self.ip_x, self.bc_t, self.bc_x, self.e_d_masks
 
         u = self.model(x, t)
 
