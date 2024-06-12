@@ -1,8 +1,8 @@
 import torch
 from tqdm import tqdm
 
-from monodomain import loss_pde, loss_neumann
-from data import MonodomainDataset, get_test_points, get_data
+from monodomain import loss_pde, loss_neumann, loss_ic
+from data import MonodomainDataset, get_test_points, get_data, get_initial_conditions_collocation_points
 from pinn import PINN
 import matplotlib.pyplot as plt
 
@@ -12,11 +12,15 @@ if __name__ == "__main__":
     torch.set_default_dtype(torch.float64)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = PINN(in_size=3, hidden_sizes=[24]*2, out_size=1)
+    model = PINN(in_size=3, hidden_sizes=[32]*8, out_size=1)
 
     model = model.to(device)
 
-    t, x, tbc, xbc, sigma_d = get_data(num_cp=1_000, num_b_cp=100, dim=2)
+    t, x, tbc, xbc, sigma_d = get_data(num_cp=5_000, num_b_cp=100, dim=2)
+
+    ic_t, ic_x = get_initial_conditions_collocation_points(500)
+    ic_t = torch.tensor(ic_t).to(device).to(torch.float64)
+    ic_x = torch.tensor(ic_x).to(device).to(torch.float64)
 
     x = torch.tensor(x).to(device).to(torch.float64).requires_grad_(True)
     t = torch.tensor(t).to(device).to(torch.float64).requires_grad_(True)
@@ -25,14 +29,15 @@ if __name__ == "__main__":
     sigma_d = torch.tensor(sigma_d).to(device).to(torch.float64).requires_grad_(True)
 
 
-    w_pde = torch.nn.Parameter(torch.tensor([100.0], requires_grad=True))
+    w_pde = torch.nn.Parameter(torch.tensor([1.0], requires_grad=True))
     w_bc = torch.nn.Parameter(torch.tensor([100.0], requires_grad=True))
+    w_ic = torch.nn.Parameter(torch.tensor([500.0], requires_grad=True))
     
-    optim = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=4e-5)
+    optim = torch.optim.Adam(model.parameters(), lr=3e-3, weight_decay=4e-5)
 
-    weight_optim = torch.optim.Adam([w_pde, w_bc], lr=0.01)
+    weight_optim = torch.optim.Adam([w_pde, w_bc, w_ic], lr=0.01)
 
-    epochs = 10000
+    epochs = 500
 
 
     progress_bar = tqdm(total=epochs, position=0, leave=False)
@@ -54,7 +59,15 @@ if __name__ == "__main__":
         ubc = model(xbc, tbc)
         loss_bc = loss_neumann(ubc, xbc)
 
-        loss = w_pde.to(device) * loss_domain + w_bc.to(device) * loss_bc
+        # loss IC
+
+        u_ic = model(x=ic_x, t=ic_t)
+        loss_init = loss_ic(u_ic, ic_x)
+        
+        loss = w_pde.to(device) * loss_domain + w_bc.to(device) * loss_bc + w_ic.to(device) * loss_init
+        # loss =  w_bc.to(device) * loss_bc + w_ic.to(device) * loss_init
+        # loss = loss_init
+
 
         losses.append(loss.item())
 
@@ -62,6 +75,7 @@ if __name__ == "__main__":
 
         w_pde.grad = -w_pde.grad
         w_bc.grad = -w_bc.grad
+        w_ic.grad = -w_ic.grad
 
         optim.step()
         weight_optim.step()
@@ -71,12 +85,14 @@ if __name__ == "__main__":
 
 
         if e % 100 == 0:
-            progress_bar.set_description(f'Loss: {loss.item()} | Pde loss {loss_domain.item()} | Bc loss {loss_bc.item()}')
+            progress_bar.set_description(f'Loss: {loss.item()} | Pde loss {loss_domain.item()} | Bc loss {loss_bc.item()} | Ic loss {loss_init.item()}')
         progress_bar.update(1)
 
 
     test_data, meshgrid_shape = get_test_points(50)
     test_data = test_data.to(device)
+
+    model.visualize(test_data, grid_shape=meshgrid_shape, timestep_indx=0)
     model.visualize_animate(test_data, grid_shape=meshgrid_shape)
 
     fig, ax = plt.subplots(1,3, figsize=(12,5))
@@ -104,7 +120,10 @@ if __name__ == "__main__":
     #     ubc = model(x=xbc, t=tbc)
     #     loss_bc = loss_neumann(ubc, xbc)
 
-    #     loss = loss_domain + loss_bc
+    #     u_ic = model(x=ic_x, t=ic_t)
+    #     loss_init = loss_ic(u_ic, ic_x)
+
+    #     loss = loss_domain + loss_bc  + 10 * loss_init
 
     #     bfgs_losses.append(loss.item())
 

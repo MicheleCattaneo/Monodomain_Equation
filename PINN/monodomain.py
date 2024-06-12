@@ -3,7 +3,7 @@ import numpy as np
 
 Tf = 1
 
-SIGMA_H = 9.5298e-4
+SIGMA_H = 1
 A = 18.515
 Fr = 0
 Ft = 0.2383
@@ -27,7 +27,7 @@ def pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma_d: torch.Tensor
     uxx_h = torch.autograd.grad(ux * SIGMA_H, x, grad_outputs=torch.ones_like(ux), create_graph=True)[0]
     uxx_d = torch.autograd.grad(ux * sigma_d.unsqueeze(-1), x, grad_outputs=torch.ones_like(ux), create_graph=True)[0]
 
-    return uxx_h + uxx_d - f(u) - ut
+    return uxx_h - f(u) - ut
 
 
 def f(u: torch.Tensor) -> torch.Tensor:
@@ -35,7 +35,7 @@ def f(u: torch.Tensor) -> torch.Tensor:
 
 
 def u0(x: torch.Tensor) -> torch.Tensor:
-    return (x >= 0.9).all(dim=1).float().unsqueeze(-1)
+    return (x >= 0.9).all(dim=1).double().unsqueeze(-1)
 
 
 def neumann_bc(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
@@ -51,3 +51,15 @@ def loss_pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma_d: torch.T
 
 def loss_neumann(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
     return torch.nn.functional.mse_loss(neumann_bc(u, x), torch.zeros_like(x))
+
+
+def loss_ic(u, x):
+    target = u0(x)
+    weights = torch.ones_like(target) * 0.95
+    weights[target == 0] = 0.05
+
+
+    return torch.nn.functional.binary_cross_entropy_with_logits(u, 
+                                                                target, 
+                                                                weight=weights)
+

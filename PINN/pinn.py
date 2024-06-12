@@ -32,8 +32,8 @@ class PINN(nn.Module):
 
     def forward(self, x, t):
         out = self.layers(torch.cat([x, t], dim=1))
-        return u0(x) + t * out
-        # return out
+        # return  u0(x) + t/Tf * out
+        return out
     
 
     def visualize(self, x, grid_shape, timestep_indx=0):

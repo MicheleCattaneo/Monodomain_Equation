@@ -24,6 +24,13 @@ def pad_with_boundaries(x_bc):
     return np.concatenate(results)
 
 
+def get_initial_conditions_collocation_points(n):
+    sampler = skopt.sampler.Hammersly(min_skip=-1, max_skip=-1)
+    boundary = [(0., 1.), (0., 1.)]
+    points = np.array(sampler.generate(boundary, n))
+
+    return np.zeros((n,1)), points
+
 def get_collocation_points(num_cp, num_b_cp):
     # internal collocation points 
 
