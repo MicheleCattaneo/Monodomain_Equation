@@ -7,6 +7,16 @@ from matplotlib.animation import FuncAnimation
 import numpy as np
 
 
+class LearnableTanh(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.alpha = nn.Parameter(torch.tensor(1.0))
+
+    def forward(self, x):
+        return torch.nn.functional.tanh(self.alpha * x)
+
+
 class PINN(nn.Module):
     def __init__(self, in_size, hidden_sizes, out_size) -> None:
         super().__init__()
@@ -14,7 +24,7 @@ class PINN(nn.Module):
         layers = []
         for hs in hidden_sizes:
             layers.append(nn.Linear(in_size, hs))
-            layers.append(nn.Tanh())
+            layers.append(LearnableTanh())
             in_size = hs
 
         layers.append(nn.Linear(hidden_sizes[-1],out_size))
