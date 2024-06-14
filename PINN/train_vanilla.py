@@ -12,7 +12,7 @@ if __name__ == "__main__":
     torch.set_default_dtype(torch.float64)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = PINN(in_size=3, hidden_sizes=[32]*8, out_size=1)
+    model = PINN(in_size=3, hidden_sizes=[128]*4, out_size=1)
 
     model = model.to(device)
 
@@ -29,15 +29,15 @@ if __name__ == "__main__":
     sigma_d = torch.tensor(sigma_d).to(device).to(torch.float64).requires_grad_(True)
 
 
-    w_pde = torch.nn.Parameter(torch.tensor([1.0], requires_grad=True))
-    w_bc = torch.nn.Parameter(torch.tensor([100.0], requires_grad=True))
-    w_ic = torch.nn.Parameter(torch.tensor([500.0], requires_grad=True))
+    w_pde = torch.nn.Parameter(torch.tensor([20.0], requires_grad=True))
+    w_bc = torch.nn.Parameter(torch.tensor([10.0], requires_grad=True))
+    w_ic = torch.nn.Parameter(torch.tensor([10.0], requires_grad=True))
     
-    optim = torch.optim.Adam(model.parameters(), lr=3e-3, weight_decay=4e-5)
+    optim = torch.optim.Adam(model.parameters(), lr=3e-4, weight_decay=4e-5)
 
     weight_optim = torch.optim.Adam([w_pde, w_bc, w_ic], lr=0.01)
 
-    epochs = 500
+    epochs = 1
 
 
     progress_bar = tqdm(total=epochs, position=0, leave=False)
@@ -56,15 +56,16 @@ if __name__ == "__main__":
         u = model(x=x, t=t)
 
         loss_domain = loss_pde(u, x, t, sigma_d)
+
         ubc = model(xbc, tbc)
         loss_bc = loss_neumann(ubc, xbc)
 
         # loss IC
 
-        u_ic = model(x=ic_x, t=ic_t)
+        u_ic = model.layers(torch.cat([ic_x, ic_t], dim=1))
         loss_init = loss_ic(u_ic, ic_x)
         
-        loss = w_pde.to(device) * loss_domain + w_bc.to(device) * loss_bc + w_ic.to(device) * loss_init
+        loss = w_pde.to(device) * loss_domain + w_bc.to(device) * loss_bc #+ w_ic.to(device) * loss_init
         # loss =  w_bc.to(device) * loss_bc + w_ic.to(device) * loss_init
         # loss = loss_init
 
@@ -73,27 +74,30 @@ if __name__ == "__main__":
 
         loss.backward()
 
-        w_pde.grad = -w_pde.grad
-        w_bc.grad = -w_bc.grad
-        w_ic.grad = -w_ic.grad
+        # w_pde.grad = -w_pde.grad
+        # w_bc.grad = -w_bc.grad
+        # w_ic.grad = -w_ic.grad
 
         optim.step()
-        weight_optim.step()
+        # weight_optim.step()
 
         weights_pde.append(w_pde.item())
         weights_bc.append(w_bc.item())
 
 
-        if e % 100 == 0:
-            progress_bar.set_description(f'Loss: {loss.item()} | Pde loss {loss_domain.item()} | Bc loss {loss_bc.item()} | Ic loss {loss_init.item()}')
+        if e % 10 == 0:
+            progress_bar.set_description(f'Loss: {loss.item()} | Pde loss {loss_domain.item()} | Bc loss {loss_bc.item()} |')
         progress_bar.update(1)
 
 
     test_data, meshgrid_shape = get_test_points(50)
     test_data = test_data.to(device)
 
+    # model.visualize_loss_pde(test_data, grid_shape=meshgrid_shape, timestep_indx=0)
+    
     model.visualize(test_data, grid_shape=meshgrid_shape, timestep_indx=0)
     model.visualize_animate(test_data, grid_shape=meshgrid_shape)
+
 
     fig, ax = plt.subplots(1,3, figsize=(12,5))
 
@@ -107,7 +111,7 @@ if __name__ == "__main__":
     ax[2].legend()
     plt.show()
 
-    # # Train with BFGS
+    # Train with BFGS
     # bfgs = torch.optim.LBFGS(model.parameters(), history_size=50, max_iter=50, line_search_fn='strong_wolfe')
     # bfgs_losses = []
     # def closure():
@@ -123,7 +127,7 @@ if __name__ == "__main__":
     #     u_ic = model(x=ic_x, t=ic_t)
     #     loss_init = loss_ic(u_ic, ic_x)
 
-    #     loss = loss_domain + loss_bc  + 10 * loss_init
+    #     loss = 20 * loss_domain + 10 * loss_bc  #+ 10 * loss_init
 
     #     bfgs_losses.append(loss.item())
 

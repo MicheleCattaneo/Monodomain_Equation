@@ -3,7 +3,7 @@ import numpy as np
 
 Tf = 1
 
-SIGMA_H = 1
+SIGMA_H = 9.5298e-4
 A = 18.515
 Fr = 0
 Ft = 0.2383
@@ -50,16 +50,17 @@ def loss_pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma_d: torch.T
 
 
 def loss_neumann(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
-    return torch.nn.functional.mse_loss(neumann_bc(u, x), torch.zeros_like(x))
+    # we wanna allow gradients along the boundary so we mask them out and only penalize
+    # gradients perpendicular to the boundary.
+    mask = (x == 0.) | (x == 1.)    
+    dudx = neumann_bc(u, x)
+    masked_dudx = dudx * mask
+
+    return torch.nn.functional.mse_loss(masked_dudx, torch.zeros_like(x))
 
 
 def loss_ic(u, x):
     target = u0(x)
-    weights = torch.ones_like(target) * 0.95
-    weights[target == 0] = 0.05
 
-
-    return torch.nn.functional.binary_cross_entropy_with_logits(u, 
-                                                                target, 
-                                                                weight=weights)
+    return torch.nn.functional.mse_loss(u, target)
 
