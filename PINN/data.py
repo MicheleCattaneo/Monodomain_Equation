@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 
-from monodomain import e_ds, diseased_areas, Tf
+from monodomain import SIGMA_D, SIGMA_H, diseased_areas, Tf
 
 
 def pad_with_boundaries(x_bc):
@@ -29,7 +29,8 @@ def get_initial_conditions_collocation_points(n):
     boundary = [(0., 1.), (0., 1.)]
     points = np.array(sampler.generate(boundary, n))
 
-    return np.zeros((n,1)), points
+    return np.zeros((n, 1)), points
+
 
 def get_collocation_points(num_cp, num_b_cp):
     # internal collocation points 
@@ -44,6 +45,17 @@ def get_collocation_points(num_cp, num_b_cp):
     bc_points = pad_with_boundaries(bc_points)
 
     return internal_points[:, :1], internal_points[:, 1:], bc_points[:, :1], bc_points[:, 1:]
+
+
+def get_sigmas(points, diseased_areas):
+    if isinstance(points, torch.Tensor):
+        points = points.cpu().numpy()
+    masks = np.zeros(points.shape[0])
+    for d in diseased_areas:
+        dist_from_center = np.sqrt(np.sum((points - d['center']) ** 2, axis=-1))
+        masks = np.logical_or(masks, dist_from_center < d['radius'])
+
+    return np.where(masks, SIGMA_D, SIGMA_H)
 
 
 def get_mask(points, diseased_areas):
@@ -94,23 +106,17 @@ def get_test_points(points_per_dim):
     test_collocation = np.vstack([elem.ravel() for elem in meshgrid_arrays]).T
     test_collocation = torch.tensor(test_collocation).to(torch.float64)
 
+    sigmas = get_sigmas(test_collocation[:, 1:], diseased_areas=diseased_areas)
 
-    mask = get_mask(test_collocation[:,1:], diseased_areas=diseased_areas)
-
-    e_d_masks = get_electrical_diffusivity_mask(mask=mask, e_ds=e_ds)
-
-
-    return test_collocation, meshgrid_arrays[0].shape, e_d_masks
+    return test_collocation, meshgrid_arrays[0].shape, sigmas
 
 
-def get_data(num_cp=10000, num_b_cp=100, dim=2):
+def get_data(num_cp=10000, num_b_cp=100):
     ip_t, ip_x, bc_t, bc_x = get_collocation_points(num_cp=num_cp, num_b_cp=num_b_cp)
 
-    mask = get_mask(ip_x, diseased_areas=diseased_areas)
+    simgas = get_sigmas(ip_x, diseased_areas=diseased_areas)
 
-    e_d_masks = get_electrical_diffusivity_mask(mask=mask, e_ds=e_ds)
-
-    return ip_t, ip_x, bc_t, bc_x, e_d_masks
+    return ip_t, ip_x, bc_t, bc_x, simgas
 
 
 class MonodomainDataset(torch.utils.data.Dataset):
@@ -139,7 +145,3 @@ if __name__ == '__main__':
     plot_collocation_points(ip_x, mask=mask)
 
     print(mask.shape)
-
-    e_d_masks = get_electrical_diffusivity_mask(mask=mask, e_ds=e_ds)
-
-    print(e_d_masks.shape)

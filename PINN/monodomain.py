@@ -9,8 +9,8 @@ Fr = 0
 Ft = 0.2383
 Fd = 1
 
-# e_ds = np.array([9.5298e-4, 9.5298e-3, 9.5298e-4, 9.5298e-5])
-e_ds = np.array([9.5298e-4]*4)
+SIGMA_D = [9.5298e-4, 9.5298e-3, 9.5298e-4, 9.5298e-5][0]
+# SIGMA_D = np.array([9.5298e-4] * 4)
 
 diseased_areas = [
     {'center': np.array([0.3, 0.7]), 'radius': 0.1},
@@ -19,15 +19,14 @@ diseased_areas = [
 ]
 
 
-def pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma_d: torch.Tensor) -> torch.Tensor:
+def pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma: torch.Tensor) -> torch.Tensor:
     # ∇·(Σ_h ∇u) + ∇·(Σ_d ∇u) - f(u) - du/dt = 0
     ux = torch.autograd.grad(u, x, grad_outputs=torch.ones_like(u), create_graph=True)[0]
     ut = torch.autograd.grad(u, t, grad_outputs=torch.ones_like(u), create_graph=True)[0]
 
-    uxx_h = torch.autograd.grad(ux * SIGMA_H, x, grad_outputs=torch.ones_like(ux), create_graph=True)[0]
-    uxx_d = torch.autograd.grad(ux * sigma_d.unsqueeze(-1), x, grad_outputs=torch.ones_like(ux), create_graph=True)[0]
+    uxx = torch.autograd.grad(ux * sigma, x, grad_outputs=torch.ones_like(ux), create_graph=True)[0]
 
-    return uxx_h - f(u) - ut
+    return uxx - f(u) - ut
 
 
 def f(u: torch.Tensor) -> torch.Tensor:
@@ -44,8 +43,8 @@ def neumann_bc(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
     return ux
 
 
-def loss_pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma_d: torch.Tensor) -> torch.Tensor:
-    residual = pde(u, x, t, sigma_d)
+def loss_pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma: torch.Tensor) -> torch.Tensor:
+    residual = pde(u, x, t, sigma)
     return torch.nn.functional.mse_loss(residual, torch.zeros_like(residual))
 
 
