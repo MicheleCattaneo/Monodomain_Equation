@@ -9,7 +9,7 @@ Fr = 0
 Ft = 0.2383
 Fd = 1
 
-SIGMA_D = [9.5298e-4, 9.5298e-3, 9.5298e-4, 9.5298e-5][0]
+SIGMA_D = [9.5298e-3, 9.5298e-4, 9.5298e-5][1]
 # SIGMA_D = np.array([9.5298e-4] * 4)
 
 diseased_areas = [
@@ -24,7 +24,7 @@ def pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma: torch.Tensor) 
     ux = torch.autograd.grad(u, x, grad_outputs=torch.ones_like(u), create_graph=True)[0]
     ut = torch.autograd.grad(u, t, grad_outputs=torch.ones_like(u), create_graph=True)[0]
 
-    uxx = torch.autograd.grad(ux * sigma, x, grad_outputs=torch.ones_like(ux), create_graph=True)[0]
+    uxx = torch.autograd.grad(ux * sigma[..., None], x, grad_outputs=torch.ones_like(ux), create_graph=True)[0]
 
     return uxx - f(u) - ut
 
