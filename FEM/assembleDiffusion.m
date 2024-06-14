@@ -1,5 +1,4 @@
-function A = assembleDiffusion(mesh, feMap)
-
+function A = assembleDiffusion(mesh, feMap, sigma_d, sigma_h)
     % Gradients of the shape functions in reference coordinates
     shapeGradients = [-1 1 0;
                       -1 0 1];
@@ -15,9 +14,15 @@ function A = assembleDiffusion(mesh, feMap)
     globRows = mesh.meshElements(nodeIndI, :);
     globCols = mesh.meshElements(nodeIndJ, :);
 
-    for e = 1: mesh.numMeshElements
+    for e = 1:mesh.numMeshElements
+        if mesh.meshElementFlags(e) == 3
+            sigma = sigma_h;
+        else
+            sigma = sigma_d;
+        end
+
         % Metric tensor for the current element
-        C = feMap.metricTensor(: , :, e);
+        C = feMap.metricTensor(:, :, e) * sigma;
 
         % Local stiffness matrix for the current element
         A_loc = shapeGradients' * C * shapeGradients / 2;
@@ -28,5 +33,5 @@ function A = assembleDiffusion(mesh, feMap)
 
     % Assemble the global stiffness matrix using sparse format
     A = sparse(globRows(:), globCols(:), AVector(:), mesh.numVertices, mesh.numVertices);
-
 end
+
