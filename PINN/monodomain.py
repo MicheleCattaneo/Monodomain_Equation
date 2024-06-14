@@ -52,7 +52,7 @@ def loss_pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma_d: torch.T
 def loss_neumann(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
     # we wanna allow gradients along the boundary so we mask them out and only penalize
     # gradients perpendicular to the boundary.
-    mask = (x == 0.) | (x == 1.)    
+    mask = (x == 0.) | (x == 1.)
     dudx = neumann_bc(u, x)
     masked_dudx = dudx * mask
 
@@ -61,6 +61,17 @@ def loss_neumann(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
 
 def loss_ic(u, x):
     target = u0(x)
+    weights = torch.ones_like(target) * 0.95
+    weights[target == 0] = 0.05
 
     return torch.nn.functional.mse_loss(u, target)
 
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    xs = np.linspace(-.2, 1.2, 100)
+    plt.title("f(u)")
+    plt.xlabel("u")
+    plt.ylabel("f(u)")
+    plt.plot(xs, f(xs))
+    plt.show()

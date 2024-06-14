@@ -39,7 +39,6 @@ class PINN(nn.Module):
 
         self.layers = nn.Sequential(*layers)
 
-
         self.initialize_weights()
 
     def initialize_weights(self):
@@ -82,7 +81,7 @@ class PINN(nn.Module):
         x.requires_grad = True
         x_ = x[:,1:]
         t_ = x[:,0:1]
-        
+
         out = self.forward(x=x_, t=t_)
 
 
@@ -90,13 +89,13 @@ class PINN(nn.Module):
         pde_residual = pde_residual ** 2
         pde_residual = torch.max(pde_residual, axis=-1)[0]
         pde_residual = pde_residual.reshape(grid_shape) # 50x50x50
-#     
+#
         grid_arrays = [np.linspace(0, 1, grid_shape[1]),
                         np.linspace(0, 1, grid_shape[2])]
 
         X_grid, Y_grid = np.meshgrid(*grid_arrays, indexing='ij')
 
-        out = out.reshape(grid_shape) 
+        out = out.reshape(grid_shape)
 
 
 
@@ -108,8 +107,8 @@ class PINN(nn.Module):
             cmap = plt.cm.viridis(norm(colors.cpu().detach()))
 
             ax.clear()
-            ax.plot_surface(X_grid, Y_grid, out[timestep_indx,:,:].cpu().detach(), facecolors=cmap, shade=False) 
-            ax.set_zlim(-.2,1)    
+            ax.plot_surface(X_grid, Y_grid, out[timestep_indx,:,:].cpu().detach(), facecolors=cmap, shade=False)
+            ax.set_zlim(-.2,1)
 
             plt.title(f'Timestep = {timestep_indx}')
 
@@ -117,7 +116,7 @@ class PINN(nn.Module):
         def update(indx):
             update_surface(indx)
 
-            
+
         ani = FuncAnimation(fig, update, frames=out.shape[0], repeat=True)
 
             # filename = f'./outputs/pinn_animation_{datetime.now().strftime("%Y%m%d_%H%M%S")}.gif'
@@ -146,7 +145,7 @@ class PINN(nn.Module):
 
             def update_surface(timestep_indx):
                 ax.clear()
-                ax.plot_surface(X_grid, Y_grid, out[timestep_indx,:,:].cpu().detach(), cmap='viridis') 
+                ax.plot_surface(X_grid, Y_grid, out[timestep_indx,:,:].cpu().detach(), cmap='viridis')
                 ax.set_zlim(-.2,1)
 
                 if nn_only:

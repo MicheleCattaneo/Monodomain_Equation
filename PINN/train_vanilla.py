@@ -1,5 +1,17 @@
 import torch
 from tqdm import tqdm
+import random
+import numpy as np
+seed = random.randint(0, 1000000000)
+torch.manual_seed(seed)
+random.seed(seed)
+np.random.seed(seed)
+
+if torch.cuda.is_available():
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)   # If you are using multi-GPU
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 from monodomain import loss_pde, loss_neumann, loss_ic
 from data import MonodomainDataset, get_test_points, get_data, get_initial_conditions_collocation_points
@@ -26,7 +38,7 @@ if __name__ == "__main__":
     t = torch.tensor(t).to(device).to(torch.float64).requires_grad_(True)
     xbc = torch.tensor(xbc).to(device).to(torch.float64).requires_grad_(True)
     tbc = torch.tensor(tbc).to(device).to(torch.float64).requires_grad_(True)
-    sigma_d = torch.tensor(sigma_d).to(device).to(torch.float64).requires_grad_(True)
+    sigma_d = torch.tensor(sigma_d).to(device).to(torch.float64)
 
 
     w_pde = torch.nn.Parameter(torch.tensor([2.0], requires_grad=True))
