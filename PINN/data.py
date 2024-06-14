@@ -93,7 +93,14 @@ def get_test_points(points_per_dim):
     meshgrid_arrays = np.meshgrid(*grid_arrays, indexing='ij')
     test_collocation = np.vstack([elem.ravel() for elem in meshgrid_arrays]).T
     test_collocation = torch.tensor(test_collocation).to(torch.float64)
-    return test_collocation, meshgrid_arrays[0].shape
+
+
+    mask = get_mask(test_collocation[:,1:], diseased_areas=diseased_areas)
+
+    e_d_masks = get_electrical_diffusivity_mask(mask=mask, e_ds=e_ds)
+
+
+    return test_collocation, meshgrid_arrays[0].shape, e_d_masks
 
 
 def get_data(num_cp=10000, num_b_cp=100, dim=2):

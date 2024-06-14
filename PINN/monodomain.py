@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-Tf = 1
+Tf = 5
 
 SIGMA_H = 9.5298e-4
 A = 18.515
