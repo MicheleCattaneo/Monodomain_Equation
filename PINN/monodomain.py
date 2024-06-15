@@ -26,7 +26,7 @@ def pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma: torch.Tensor) 
 
     uxx = torch.autograd.grad(ux * sigma[..., None], x, grad_outputs=torch.ones_like(ux), create_graph=True)[0]
 
-    return uxx.sum(dim=-1) - f(u) - ut
+    return uxx.sum(dim=-1, keepdims=True) - f(u) - ut
 
 
 def f(u: torch.Tensor) -> torch.Tensor:
@@ -47,8 +47,9 @@ def loss_pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma: torch.Ten
     residual = pde(u, x, t, sigma)
     if weights is None:
         weights = torch.ones_like(residual)
-    residual = residual * weights
-    return torch.nn.functional.mse_loss(residual, torch.zeros_like(residual))
+
+    return ((residual ** 2) * weights).mean()
+
 
 
 def loss_neumann(u: torch.Tensor, x: torch.Tensor, weights: torch.Tensor = None) -> torch.Tensor:
@@ -59,9 +60,10 @@ def loss_neumann(u: torch.Tensor, x: torch.Tensor, weights: torch.Tensor = None)
     masked_dudx = dudx * mask
     if weights is None:
         weights = torch.ones_like(masked_dudx)
-    masked_dudx = masked_dudx * weights
 
-    return torch.nn.functional.mse_loss(masked_dudx, torch.zeros_like(masked_dudx))
+    return ((masked_dudx ** 2) * weights).mean()
+
+    # return torch.nn.functional.mse_loss(masked_dudx, torch.zeros_like(masked_dudx))
 
 
 def loss_ic(u, x):
