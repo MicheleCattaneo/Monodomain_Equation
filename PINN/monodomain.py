@@ -51,7 +51,6 @@ def loss_pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma: torch.Ten
     return ((residual ** 2) * weights).mean()
 
 
-
 def loss_neumann(u: torch.Tensor, x: torch.Tensor, weights: torch.Tensor = None) -> torch.Tensor:
     # we wanna allow gradients along the boundary so we mask them out and only penalize
     # gradients perpendicular to the boundary.
@@ -61,9 +60,7 @@ def loss_neumann(u: torch.Tensor, x: torch.Tensor, weights: torch.Tensor = None)
     if weights is None:
         weights = torch.ones_like(masked_dudx)
 
-    return ((masked_dudx ** 2) * weights).mean()
-
-    # return torch.nn.functional.mse_loss(masked_dudx, torch.zeros_like(masked_dudx))
+    return ((masked_dudx ** 2) * weights).sum() / mask.sum()
 
 
 def loss_ic(u, x):
