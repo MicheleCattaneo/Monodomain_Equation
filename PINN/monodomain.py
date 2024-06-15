@@ -26,7 +26,7 @@ def pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma: torch.Tensor) 
 
     uxx = torch.autograd.grad(ux * sigma[..., None], x, grad_outputs=torch.ones_like(ux), create_graph=True)[0]
 
-    return uxx - f(u) - ut
+    return uxx.sum(dim=-1) - f(u) - ut
 
 
 def f(u: torch.Tensor) -> torch.Tensor:
