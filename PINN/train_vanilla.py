@@ -49,11 +49,16 @@ if __name__ == "__main__":
     w_bc = torch.nn.Parameter(torch.tensor([5.0], requires_grad=True))
     w_ic = torch.nn.Parameter(torch.tensor([1.0], requires_grad=True))
 
+    num_points = t.shape[0] + tbc.shape[0]
+    point_wise_weights = torch.nn.Parameter(torch.ones(num_points, 1).to(device).to(torch.float32), requires_grad=True)
+
     optim = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=4e-5)
 
-    weight_optim = torch.optim.Adam([w_pde, w_bc, w_ic], lr=0.01)
+    point_wise_optim = torch.optim.Adam([point_wise_weights], lr=0.01, maximize=True)
 
-    epochs = 3000
+    weight_optim = torch.optim.Adam([w_pde, w_bc, w_ic], lr=0.01, maximize=True)
+
+    epochs = 500
     hard_ic_epochs = epochs // 2  
 
     progress_bar = tqdm(total=epochs, position=0, leave=False)
@@ -67,32 +72,30 @@ if __name__ == "__main__":
         model.train()
         optim.zero_grad()
         weight_optim.zero_grad()
+        point_wise_optim.zero_grad()
 
         use_hc = e > hard_ic_epochs
-        u = model(x=x, t=t, hard_ic = use_hc)
+        u = model(x=x, t=t, hard_ic=use_hc)
 
-        loss_domain = loss_pde(u, x, t, sigma)
+        loss_domain = loss_pde(u, x, t, sigma, weights=point_wise_weights[:t.shape[0]])
 
-        ubc = model(xbc, tbc, hard_ic = use_hc)
-        loss_bc = loss_neumann(ubc, xbc)
+        ubc = model(xbc, tbc, hard_ic=use_hc)
+        loss_bc = loss_neumann(ubc, xbc, weights=point_wise_weights[t.shape[0]:])
 
         loss = w_pde.to(device) * loss_domain + w_bc.to(device) * loss_bc  #+ w_ic.to(device) * loss_init
         # loss IC
         if not use_hc:
-            u_ic = model(x=ic_x, t=ic_t, hard_ic = False)
+            u_ic = model(x=ic_x, t=ic_t, hard_ic=False)
             loss_init = loss_ic(u_ic, ic_x)
-            loss +=  w_ic.to(device) * loss_init
+            loss += w_ic.to(device) * loss_init
 
         losses.append(loss.item())
 
         loss.backward()
 
-        # w_pde.grad = -w_pde.grad
-        # w_bc.grad = -w_bc.grad
-        # w_ic.grad = -w_ic.grad
-
         optim.step()
         # weight_optim.step()
+        point_wise_optim.step()
 
         weights_pde.append(w_pde.item())
         weights_bc.append(w_bc.item())
