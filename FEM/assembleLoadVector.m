@@ -22,11 +22,9 @@ function F = assembleLoadVector(mesh, feMap, u, f_r, f_t, f_d, a)
 
             % Evaluate the integrand at the quadrature points
             integrand = a * (N * u_e - f_r) * (N * u_e - f_t) * (N * u_e - f_d);
-            % integrand = a * (u_e - f_r) .* (u_e - f_t) .* (u_e - f_d);
 
             % Compute the local load vector contribution
             F_loc = F_loc + integrand * N' * feMap.J(e) / 24;
-            % F_loc = F_loc + integrand * feMap.J(e) / 24;
         end
 
         % Assemble the local load vector into the global load vector
