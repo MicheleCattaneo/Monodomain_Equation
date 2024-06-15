@@ -107,12 +107,12 @@ if __name__ == "__main__":
     test_data = test_data.to(device)
 
     model.visualize_loss_pde(test_data, grid_shape=meshgrid_shape,
-                             sigma=test_sigmas,
-                             timestep_indx=0)
+                             sigma=test_sigmas, 
+                             savevideo=False)
 
     model.visualize(test_data, grid_shape=meshgrid_shape, timestep_indx=0)
     model.visualize_animate(test_data, grid_shape=meshgrid_shape, savevideo=True)
-    model.visualize_animate(test_data, grid_shape=meshgrid_shape, nn_only=True, savevideo=True)
+    # model.visualize_animate(test_data, grid_shape=meshgrid_shape, nn_only=True, savevideo=False)
 
     fig, ax = plt.subplots(1, 3, figsize=(12, 5))
 
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     plt.show()
 
     # Train with BFGS
-    bfgs = torch.optim.LBFGS(model.parameters(), history_size=50, max_iter=50, line_search_fn='strong_wolfe')
+    bfgs = torch.optim.LBFGS(model.parameters(), history_size=40, max_iter=50, line_search_fn='strong_wolfe')
     bfgs_losses = []
 
 
@@ -141,10 +141,10 @@ if __name__ == "__main__":
         ubc = model(x=xbc, t=tbc)
         loss_bc = loss_neumann(ubc, xbc)
 
-        u_ic = model(x=ic_x, t=ic_t)
-        loss_init = loss_ic(u_ic, ic_x)
+        # u_ic = model(x=ic_x, t=ic_t)
+        # loss_init = loss_ic(u_ic, ic_x)
 
-        loss = 20 * loss_domain + 10 * loss_bc  #+ 10 * loss_init
+        loss = w_pde.to(device) * loss_domain +  w_bc.to(device) * loss_bc  #+ 10 * loss_init
 
         bfgs_losses.append(loss.item())
 
@@ -153,7 +153,7 @@ if __name__ == "__main__":
         return loss
 
 
-    bfgs_epochs = 10
+    bfgs_epochs = 50
     progress_bar2 = tqdm(total=bfgs_epochs, position=0, leave=False)
 
     for e in range(bfgs_epochs):
@@ -164,3 +164,10 @@ if __name__ == "__main__":
         progress_bar2.update(1)
 
     model.visualize_animate(test_data, grid_shape=meshgrid_shape, savevideo=True)
+
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+
+    ax.semilogy(losses, label='BFGS loss')
+    ax.legend()
+    plt.show()

@@ -19,16 +19,17 @@ class LearnableTanh(nn.Module):
 
     def forward(self, x):
         return torch.tanh(self.alpha * x)
+    
 
 
 class PINN(nn.Module):
     def __init__(self, in_size, hidden_sizes, out_size, rff_size=32) -> None:
         super().__init__()
 
-        rff_encoding = rff.layers.GaussianEncoding(sigma=.125, input_size=in_size, encoded_size=rff_size)
-        in_size = rff_size * 2
+        self.rff_encoding = rff.layers.GaussianEncoding(sigma=.125, input_size=in_size, encoded_size=rff_size)
 
-        layers = [rff_encoding]
+        in_size += 2 * rff_size
+        layers = []
 
         for hs in hidden_sizes:
             layers.append(nn.Linear(in_size, hs))
@@ -51,7 +52,13 @@ class PINN(nn.Module):
 
     def forward(self, x, t):
 
-        out = self.layers(torch.cat([x, t], dim=1))
+        x_ = torch.cat([x, t], dim=1)
+
+        rff_encoded = self.rff_encoding(x_)
+
+        concatenated = torch.concatenate([x_, rff_encoded],dim=1)
+
+        out = self.layers(concatenated)
         return torch.exp(-10 * t) * u0(x) + (1.0 - torch.exp(-10 * t)) * out
         # return out
 
@@ -72,7 +79,7 @@ class PINN(nn.Module):
             ax.plot_surface(X_grid, Y_grid, out[timestep_indx, :, :].cpu().detach(), cmap='viridis')
             plt.show()
 
-    def visualize_loss_pde(self, x, grid_shape, sigma, timestep_indx=0):
+    def visualize_loss_pde(self, x, grid_shape, sigma, savevideo=False):
 
         fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
         x.requires_grad = True
@@ -106,11 +113,11 @@ class PINN(nn.Module):
             plt.title(f'Timestep = {timestep_indx}')
 
         ani = FuncAnimation(fig, update_surface, frames=out.shape[0], repeat=True)
-
-        out_dir = './outputs'
-        os.makedirs(out_dir, exist_ok=True)
-        filename = f'{out_dir}/pinn_residual_animation_{datetime.now().strftime("%Y%m%d_%H%M%S")}.gif'
-        ani.save(filename=filename, writer='pillow')
+        if savevideo:
+            out_dir = './outputs'
+            os.makedirs(out_dir, exist_ok=True)
+            filename = f'{out_dir}/pinn_residual_animation_{datetime.now().strftime("%Y%m%d_%H%M%S")}.gif'
+            ani.save(filename=filename, writer='pillow')
 
         plt.show()
 
