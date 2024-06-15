@@ -5,12 +5,12 @@ mesh = Mesh2D('mesh_0128.msh');
 feMap = FEMap(mesh);
 
 sigma_h = 9.598e-4; % Define sigma_h
-sigma_d = 0.1*sigma_h; % Define sigma_d
+sigma_d = 10 * sigma_h; % Define sigma_d
 a = 18.515; % Define constant a
 f_t = 0.2383; % Define function f_t
 f_r = 0; % Define function f_r
 f_d = 1; % Define function f_d
-T_f = 35; % Final time
+T_f = 35; % Final time in ms
 numSteps = 350; % Number of time steps
 videoFileName = 'solution.mp4'; % Video file name
 
@@ -22,11 +22,22 @@ solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFi
 
 % Main function to solve the problem
 function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName)
+    % Activation flag
+    flag = 0;
+
     % Time step
     dt = T_f / numSteps;
 
     % Assemble the mass matrix
     M = assembleMass(mesh, feMap);
+
+    % Check if the mass matrix is M-matrix
+    is_M_matrix = isMassMatrix(M);
+    if is_M_matrix
+        disp('The mass matrix is an M-matrix.');
+    else
+        disp('The mass matrix is not an M-matrix.');
+    end
 
     % Assemble the diffusion matrix
     K = assembleDiffusion(mesh, feMap, sigma_d, sigma_h);
@@ -69,6 +80,12 @@ function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps
         writeVideo(videoWriter, frame); % Write the frame to the video
         close(fig); % Close the figure
 
+        if all(u >= f_t) && flag == 0
+            flag = 1;
+            time = n * dt;
+            disp(['The solution exceeds the threshold at time t = ', num2str(time), 'ms.']);
+        end
+
         % Update progress bar
         waitbar(n / numSteps, hWaitBar);
     end
@@ -78,14 +95,6 @@ function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps
 
     % Close the video writer
     close(videoWriter);
-
-    % Check if the mass matrix is M-matrix
-    is_M_matrix = isMassMatrix(M);
-    if is_M_matrix
-        disp('The mass matrix is an M-matrix.');
-    else
-        disp('The mass matrix is not an M-matrix.');
-    end
 
     % Calculate potential excess
     if min(u) < 1e-10 || max(u) > 1+1e-10
