@@ -15,6 +15,7 @@ function A = assembleDiffusion(mesh, feMap, sigma_d, sigma_h)
     globCols = mesh.meshElements(nodeIndJ, :);
 
     for e = 1:mesh.numMeshElements
+        % Determine the conductivity for the current element
         if mesh.meshElementFlags(e) == 3
             sigma = sigma_h;
         else

@@ -1,12 +1,8 @@
 % Define the mesh
-mesh = Mesh2D('mesh_0064.msh');
+mesh = Mesh2D('mesh_0128.msh');
 
 % Define the finite element map
 feMap = FEMap(mesh);
-
-plotMesh(mesh);
-
-return;
 
 sigma_h = 9.598e-4; % Define sigma_h
 sigma_d = 0.1*sigma_h; % Define sigma_d
@@ -15,7 +11,7 @@ f_t = 0.2383; % Define function f_t
 f_r = 0; % Define function f_r
 f_d = 1; % Define function f_d
 T_f = 35; % Final time
-numSteps = 100; % Number of time steps
+numSteps = 350; % Number of time steps
 videoFileName = 'solution.mp4'; % Video file name
 
 % Plot initial condition
@@ -49,6 +45,9 @@ function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps
     writeVideo(videoWriter, frame); % Write the frame to the video
     close(fig); % Close the figure
 
+    % Initialize progress bar
+    hWaitBar = waitbar(0, 'Solving PDE...', 'Name', 'Progress');
+
     % Time-stepping loop
     for n = 1:numSteps
         % Assemble the load vector
@@ -69,10 +68,31 @@ function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps
         frame = getframe(fig); % Capture the frame
         writeVideo(videoWriter, frame); % Write the frame to the video
         close(fig); % Close the figure
+
+        % Update progress bar
+        waitbar(n / numSteps, hWaitBar);
     end
+
+    % Close the progress bar
+    close(hWaitBar);
 
     % Close the video writer
     close(videoWriter);
+
+    % Check if the mass matrix is M-matrix
+    is_M_matrix = isMassMatrix(M);
+    if is_M_matrix
+        disp('The mass matrix is an M-matrix.');
+    else
+        disp('The mass matrix is not an M-matrix.');
+    end
+
+    % Calculate potential excess
+    if min(u) < 1e-10 || max(u) > 1+1e-10
+        disp('The solution exceeds the bounds.');
+    else
+        disp('The solution does not exceed the bounds.');
+    end
 end
 
 function u0 = initialCondition(mesh)
@@ -87,4 +107,9 @@ function u0 = initialCondition(mesh)
             u0(i) = 0;
         end
     end
+end
+
+function is_M_matrix = isMassMatrix(M)
+    % Check if the matrix is a mass matrix
+    is_M_matrix = isequal(M, M');
 end
