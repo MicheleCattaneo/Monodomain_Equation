@@ -49,11 +49,12 @@ if __name__ == "__main__":
     w_bc = torch.nn.Parameter(torch.tensor([5.0], requires_grad=True))
     w_ic = torch.nn.Parameter(torch.tensor([1.0], requires_grad=True))
 
-    optim = torch.optim.Adam(model.parameters(), lr=5e-3, weight_decay=4e-5)
+    optim = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=4e-5)
 
     weight_optim = torch.optim.Adam([w_pde, w_bc, w_ic], lr=0.01)
 
-    epochs = 5000
+    epochs = 3000
+    hard_ic_epochs = epochs // 2  
 
     progress_bar = tqdm(total=epochs, position=0, leave=False)
 
@@ -67,28 +68,27 @@ if __name__ == "__main__":
         optim.zero_grad()
         weight_optim.zero_grad()
 
-        u = model(x=x, t=t)
+        use_hc = e > hard_ic_epochs
+        u = model(x=x, t=t, hard_ic = use_hc)
 
         loss_domain = loss_pde(u, x, t, sigma)
 
-        ubc = model(xbc, tbc)
+        ubc = model(xbc, tbc, hard_ic = use_hc)
         loss_bc = loss_neumann(ubc, xbc)
 
-        # loss IC
-
-        # u_ic = model.layers(torch.cat([ic_x, ic_t], dim=1))
-        # loss_init = loss_ic(u_ic, ic_x)
-
         loss = w_pde.to(device) * loss_domain + w_bc.to(device) * loss_bc  #+ w_ic.to(device) * loss_init
-        # loss =  w_bc.to(device) * loss_bc + w_ic.to(device) * loss_init
-        # loss = loss_init
+        # loss IC
+        if not use_hc:
+            u_ic = model(x=ic_x, t=ic_t, hard_ic = False)
+            loss_init = loss_ic(u_ic, ic_x)
+            loss +=  w_ic.to(device) * loss_init
 
         losses.append(loss.item())
 
         loss.backward()
 
-        w_pde.grad = -w_pde.grad
-        w_bc.grad = -w_bc.grad
+        # w_pde.grad = -w_pde.grad
+        # w_bc.grad = -w_bc.grad
         # w_ic.grad = -w_ic.grad
 
         optim.step()
@@ -153,7 +153,7 @@ if __name__ == "__main__":
         return loss
 
 
-    bfgs_epochs = 50
+    bfgs_epochs = 150
     progress_bar2 = tqdm(total=bfgs_epochs, position=0, leave=False)
 
     for e in range(bfgs_epochs):

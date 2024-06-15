@@ -50,7 +50,7 @@ class PINN(nn.Module):
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
 
-    def forward(self, x, t):
+    def forward(self, x, t, hard_ic=True):
 
         x_ = torch.cat([x, t], dim=1)
 
@@ -59,8 +59,9 @@ class PINN(nn.Module):
         concatenated = torch.concatenate([x_, rff_encoded],dim=1)
 
         out = self.layers(concatenated)
-        return torch.exp(-10 * t) * u0(x) + (1.0 - torch.exp(-10 * t)) * out
-        # return out
+        if hard_ic:
+            return torch.exp(-10 * t) * u0(x) + (1.0 - torch.exp(-10 * t)) * out
+        return out
 
     def visualize(self, x, grid_shape, timestep_indx=0):
         with torch.no_grad():
