@@ -5,7 +5,7 @@ mesh = Mesh2D('mesh_0128.msh');
 feMap = FEMap(mesh);
 
 sigma_h = 9.598e-4; % Define sigma_h
-sigma_d = 10 * sigma_h; % Define sigma_d
+sigma_d = 0.1 * sigma_h; % Define sigma_d
 a = 18.515; % Define constant a
 f_t = 0.2383; % Define function f_t
 f_r = 0; % Define function f_r
@@ -30,6 +30,7 @@ function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps
 
     % Assemble the mass matrix
     M = assembleMass(mesh, feMap);
+    M = lumpMassMatrix(M);
 
     % Check if the mass matrix is M-matrix
     is_M_matrix = isMassMatrix(M);
@@ -86,6 +87,14 @@ function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps
             disp(['The solution exceeds the threshold at time t = ', num2str(time), 'ms.']);
         end
 
+        % Calculate potential excess
+        if max(u) > 1
+            disp('The potential is above the upper bound.');
+        elseif min(u) < 0
+            disp('The potential is below the lower bound.');
+            disp(min(u));
+        end
+
         % Update progress bar
         waitbar(n / numSteps, hWaitBar);
     end
@@ -95,13 +104,6 @@ function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps
 
     % Close the video writer
     close(videoWriter);
-
-    % Calculate potential excess
-    if min(u) < 1e-10 || max(u) > 1+1e-10
-        disp('The solution exceeds the bounds.');
-    else
-        disp('The solution does not exceed the bounds.');
-    end
 end
 
 function u0 = initialCondition(mesh)
@@ -121,4 +123,9 @@ end
 function is_M_matrix = isMassMatrix(M)
     % Check if the matrix is a mass matrix
     is_M_matrix = isequal(M, M');
+end
+
+function M_lumped = lumpMassMatrix(M)
+    % Lumped mass matrix
+    M_lumped = diag(sum(M,2));
 end
