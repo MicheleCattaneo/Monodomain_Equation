@@ -7,6 +7,11 @@ from monodomain import SIGMA_D, SIGMA_H, diseased_areas, Tf
 
 
 def pad_with_boundaries(x_bc):
+    '''
+    Pads the input with (spatial) boundary values (0 and 1) given a tensor of D-1 dimensions
+    where the first dimension is the batch, and second timension is time.
+    '''
+
     results = []
 
     for i in range(1, x_bc.shape[-1] + 1):
@@ -25,6 +30,10 @@ def pad_with_boundaries(x_bc):
 
 
 def get_initial_conditions_collocation_points(n):
+    '''
+    Return the time tensor and the spatial tensor for initial conditions, such that t is full of 0s
+    and the spatial tensor contains sampled points.
+    '''
     sampler = skopt.sampler.Hammersly(min_skip=-1, max_skip=-1)
     boundary = [(0., 1.), (0., 1.)]
     points = np.array(sampler.generate(boundary, n))
@@ -33,7 +42,11 @@ def get_initial_conditions_collocation_points(n):
 
 
 def get_collocation_points(num_cp, num_b_cp):
-    # internal collocation points 
+    ''' 
+    Returns randomly sampled collocation points for the internal domain and 
+    the boundaries. Returns 4 tensors since because time and space are 
+    kept in separate tensors.
+    '''
 
     space = [(0., Tf), (0., 1.), (0., 1.)]
     sampler = skopt.sampler.Hammersly(min_skip=-1, max_skip=-1)
@@ -48,6 +61,7 @@ def get_collocation_points(num_cp, num_b_cp):
 
 
 def get_sigmas(points, diseased_areas):
+    # Returns a mask with the sigma value corresponding to each collocation point
     if isinstance(points, torch.Tensor):
         points = points.cpu().numpy()
     masks = np.zeros(points.shape[0])
@@ -59,6 +73,8 @@ def get_sigmas(points, diseased_areas):
 
 
 def get_mask(points, diseased_areas):
+    # Returns an identified for each collocation point where 0 is reserved for healthy tissue.
+    # Diseased tissue have identifiers 1,2, ...
     def is_in(point, center, radius):
         distance = np.sqrt(np.sum((point - center) ** 2))
         return distance <= radius
@@ -78,6 +94,8 @@ def get_electrical_diffusivity_mask(mask, e_ds):
 
 
 def plot_collocation_points(cp, mask):
+    # Displays collocation points with their identifier (healthy or diseased) as a color
+
     colors = ['lightgreen', 'darkorchid', 'orangered', 'crimson']
     labels = ['Healthy', 'Diseased 1', 'Diseased 2', 'Diseased 3']
     x = cp[:, 0]
@@ -98,6 +116,7 @@ def plot_collocation_points(cp, mask):
 
 
 def get_test_points(points_per_dim):
+    # Returns a uniform grid of collocation points to test and visualize the PINN solution 
     grid_arrays = [np.linspace(0, Tf, points_per_dim),
                    np.linspace(0, 1, points_per_dim),
                    np.linspace(0, 1, points_per_dim)]
@@ -112,6 +131,7 @@ def get_test_points(points_per_dim):
 
 
 def get_data(num_cp=10000, num_b_cp=100):
+    # Returns internal and boundary collocation points, together with their corresponding sigma value
     ip_t, ip_x, bc_t, bc_x = get_collocation_points(num_cp=num_cp, num_b_cp=num_b_cp)
 
     simgas = get_sigmas(ip_x, diseased_areas=diseased_areas)
@@ -120,6 +140,7 @@ def get_data(num_cp=10000, num_b_cp=100):
 
 
 class MonodomainDataset(torch.utils.data.Dataset):
+    # Batchless  TorchLightning dataset 
     def __init__(self, num_cp=10000, num_b_cp=100, dim=2):
         self.ip_t, self.ip_x, self.bc_t, self.bc_x, self.e_d_masks = get_data(num_cp=num_cp, num_b_cp=num_b_cp, dim=dim)
 

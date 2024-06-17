@@ -12,6 +12,10 @@ import rff
 
 
 class LearnableTanh(nn.Module):
+    '''
+    Learnable hyperbolic tangent module performing
+    y = tanh(a * x) where a is a learnable scalar.
+    '''
     def __init__(self):
         super().__init__()
 
@@ -23,6 +27,10 @@ class LearnableTanh(nn.Module):
 
 
 class PINN(nn.Module):
+    '''
+    Simple FFNN performing y = MLP(x || rff(x)) where rff 
+    is are random Fourier features and || is the concatenation operation.
+    '''
     def __init__(self, in_size, hidden_sizes, out_size, rff_size=32) -> None:
         super().__init__()
 
@@ -64,6 +72,10 @@ class PINN(nn.Module):
         return out
 
     def visualize(self, x, grid_shape, timestep_indx=0):
+        '''
+        Visualizes a time snapshot solution of the PINN given the output on 
+        a uniform grid and the time step index of interest
+        '''
         with torch.no_grad():
             out = self.forward(x=x[:, 1:], t=x[:, 0:1])
             # out = self.layers(torch.cat([x[:,1:],x[:,0:1]], dim=1))
@@ -81,6 +93,10 @@ class PINN(nn.Module):
             plt.show()
 
     def visualize_loss_pde(self, x, grid_shape, sigma, savevideo=False):
+        ''''
+        Plots the PDE residual on an animation of the PINN solution
+
+        '''
 
         fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
         x.requires_grad = True
@@ -123,6 +139,9 @@ class PINN(nn.Module):
         plt.show()
 
     def visualize_animate(self, x, grid_shape, savevideo=False, nn_only=False):
+        '''
+        Animates the solution over time for the PINN applied on a uniform grid
+        '''
 
         fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 

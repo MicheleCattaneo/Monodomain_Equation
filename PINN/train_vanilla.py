@@ -3,7 +3,6 @@ from tqdm import tqdm
 import random
 import numpy as np
 
-
 def fix_seed(seed):
     torch.manual_seed(seed)
     random.seed(seed)
@@ -29,10 +28,13 @@ if __name__ == "__main__":
     torch.set_default_dtype(torch.float64)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # -----------------
+    # defines the model
     model = PINN(in_size=3, hidden_sizes=[64] * 4, out_size=1)
 
     model = model.to(device)
-
+    # -----------------
+    # define the training data
     transform = lambda x : torch.tensor(x).to(device).to(torch.float64)
 
 
@@ -61,8 +63,12 @@ if __name__ == "__main__":
 
     # weight_optim = torch.optim.Adam([w_pde, w_bc], lr=0.001, maximize=True)
 
+    # -----------------
+    # Training loop
     epochs = 1000
-    hard_ic_epochs = epochs // 2 
+     # Defines the amount of epochs when hard constraints are introduced. 
+     # Before that, only a soft loss is applied
+    hard_ic_epochs = epochs // 2
 
     progress_bar = tqdm(total=epochs, position=0, leave=False)
 
