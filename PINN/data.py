@@ -128,7 +128,7 @@ class MonodomainDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         return list(map(
-            lambda x: torch.tensor(x).to(torch.float32).requires_grad_(True),
+            lambda x: torch.tensor(x).to(torch.float64).requires_grad_(True),
             (self.ip_x, self.ip_t, self.bc_x, self.bc_t, self.e_d_masks)
         ))
 

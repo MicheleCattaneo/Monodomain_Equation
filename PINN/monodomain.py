@@ -46,7 +46,7 @@ def neumann_bc(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
 def loss_pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma: torch.Tensor, weights: torch.Tensor = None) -> torch.Tensor:
     residual = pde(u, x, t, sigma)
     if weights is None:
-        weights = torch.ones_like(residual)
+        return ((residual ** 2)).mean()
 
     return ((residual ** 2) * weights).mean()
 
@@ -57,10 +57,11 @@ def loss_neumann(u: torch.Tensor, x: torch.Tensor, weights: torch.Tensor = None)
     mask = (x == 0.) | (x == 1.)
     dudx = neumann_bc(u, x)
     masked_dudx = dudx * mask
+    
     if weights is None:
-        weights = torch.ones_like(masked_dudx)
+        return ((masked_dudx ** 2) ).sum() / mask.sum()
 
-    return ((masked_dudx ** 2) * weights).sum() / mask.sum()
+    return ((masked_dudx ** 2) * weights ).sum() / mask.sum()
 
 
 def loss_ic(u, x):
