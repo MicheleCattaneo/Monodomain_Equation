@@ -11,28 +11,28 @@ meshes = ["mesh_0256", "mesh_0128"];
 sigma_ds = [0.1, 1, 10] * sigma_h; % Define sigma_d
 Step_list = [350, 700]; % Number of time steps
 
-for mesh_name = meshes
-    filename = convertStringsToChars(strcat(mesh_name, ".msh"));
-    mesh = Mesh2D(filename);
-    % Define the finite element map
-    feMap = FEMap(mesh);
+% for mesh_name = meshes
+%     filename = convertStringsToChars(strcat(mesh_name, ".msh"));
+%     mesh = Mesh2D(filename);
+%     % Define the finite element map
+%     feMap = FEMap(mesh);
 
-    for sigma_d = sigma_ds
-        for numSteps = Step_list
-            videoFileName = ['solution_', convertStringsToChars(mesh_name), '_', num2str(sigma_d), '_', num2str(numSteps), '.mp4'];
-            % Solve the PDE
-            solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName);
-        end
-    end
-end  
+%     for sigma_d = sigma_ds
+%         for numSteps = Step_list
+%             videoFileName = ['solution_', convertStringsToChars(mesh_name), '_', num2str(sigma_d), '_', num2str(numSteps), '.mp4'];
+%             % Solve the PDE
+%             solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName);
+%         end
+%     end
+% end  
 
-% mesh = Mesh2D('mesh_0256.msh');
-% feMap = FEMap(mesh);
-% sigma_d = 0.1*sigma_h;
-% numSteps = 700;
-% videoFileName = 'solution.mp4';
+mesh = Mesh2D('mesh_0256.msh');
+feMap = FEMap(mesh);
+sigma_d = 0.1*sigma_h;
+numSteps = 350;
+videoFileName = 'solution.mp4';
 
-% solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName);
+solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName);
 
 % Main function to solve the problem
 function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName)
@@ -56,12 +56,18 @@ function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps
     K = assembleDiffusion(mesh, feMap, sigma_d, sigma_h);
 
     % Check if the mass matrix is M-matrix
-    is_M_matrix = check_M_Matrix(M);
+    is_M_matrix = check_M_Matrix((M / dt) + K);
     if is_M_matrix
-        disp('The mass matrix is an M-matrix.');
+        disp('The system matrix is an M-matrix.');
     else
-        disp('The mass matrix is not an M-matrix.');
+        disp('The system matrix is not an M-matrix.');
         M = lumpMassMatrix(M);
+        is_M_matrix = check_M_Matrix((M / dt) + K);
+        if is_M_matrix
+            disp('The lumped system matrix is an M-matrix.');
+        else
+            disp('The lumped system matrix is not an M-matrix.');
+        end
     end
 
     % Form the system matrix
@@ -183,14 +189,14 @@ function is_M_matrix = check_M_Matrix(M)
         row = M(i, :);
 
         % Check diagonal dominance condition
-        if full(2 * diag_M(i) - sum(abs(row))) < 0
+        if full(2 * diag_M(i) - sum(abs(row))) < -1e-8
             cond2 = false;
             break;
         end
         
         % Check if off-diagonal elements are non-positive
         row(i) = 0; % Temporarily set diagonal element to zero
-        if any(row > 0)
+        if any(row > 1e-8)
             cond3 = false;
             break;
         end
