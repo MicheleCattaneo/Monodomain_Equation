@@ -3,8 +3,8 @@ function F = assembleLoadVector(mesh, feMap, u, f_r, f_t, f_d, a)
     F = zeros(mesh.numVertices, 1);
 
     % Reference element shape functions evaluated at integration points
-    % refShapeFunctions = [2/3 1/6 1/6; 1/6 2/3 1/6; 1/6 1/6 2/3]; % Shape functions at the integration points
-    refShapeFunctions = [1/3 1/3 1/3]; % Shape functions at the centroid
+    refShapeFunctions = [2/3 1/6 1/6; 1/6 2/3 1/6; 1/6 1/6 2/3]; % For 3-point quadrature rule on a triangle
+    % refShapeFunctions = [1/3 1/3 1/3]; % Shape functions at the centroid
     q_len = size(refShapeFunctions, 1);
 
     for e = 1:mesh.numMeshElements
@@ -24,7 +24,7 @@ function F = assembleLoadVector(mesh, feMap, u, f_r, f_t, f_d, a)
             integrand = a * (N * u_e - f_r) * (N * u_e - f_t) * (N * u_e - f_d);
 
             % Compute the local load vector contribution
-            F_loc = F_loc + integrand * N' * feMap.J(e) / 2;
+            F_loc = F_loc + integrand * N' * feMap.J(e) / 6;
         end
 
         % Assemble the local load vector into the global load vector
