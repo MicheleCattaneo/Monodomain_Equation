@@ -11,28 +11,28 @@ meshes = ["mesh_0256", "mesh_0128"];
 sigma_ds = [0.1, 1, 10] * sigma_h; % Define sigma_d
 Step_list = [350, 700]; % Number of time steps
 
-% for mesh_name = meshes
-%     filename = convertStringsToChars(strcat(mesh_name, ".msh"));
-%     mesh = Mesh2D(filename);
-%     % Define the finite element map
-%     feMap = FEMap(mesh);
+for mesh_name = meshes
+    filename = convertStringsToChars(strcat(mesh_name, ".msh"));
+    mesh = Mesh2D(filename);
+    % Define the finite element map
+    feMap = FEMap(mesh);
 
-%     for sigma_d = sigma_ds
-%         for numSteps = Step_list
-%             videoFileName = ['solution_', convertStringsToChars(mesh_name), '_', num2str(sigma_d), '_', num2str(numSteps), '.mp4'];
-%             % Solve the PDE
-%             solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName);
-%         end
-%     end
-% end  
+    for sigma_d = sigma_ds
+        for numSteps = Step_list
+            videoFileName = ['solution_', convertStringsToChars(mesh_name), '_', num2str(sigma_d), '_', num2str(numSteps), '.mp4'];
+            % Solve the PDE
+            solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName);
+        end
+    end
+end  
 
-mesh = Mesh2D('mesh_0128.msh');
-feMap = FEMap(mesh);
-sigma_d = 0.1*sigma_h;
-numSteps = 350;
-videoFileName = 'solution.mp4';
+% mesh = Mesh2D('mesh_0256.msh');
+% feMap = FEMap(mesh);
+% sigma_d = 0.1*sigma_h;
+% numSteps = 700;
+% videoFileName = 'solution.mp4';
 
-solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName);
+% solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName);
 
 % Main function to solve the problem
 function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName)
@@ -55,17 +55,17 @@ function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps
     % Assemble the diffusion matrix
     K = assembleDiffusion(mesh, feMap, sigma_d, sigma_h);
 
-    % Form the system matrix
-    A = (M / dt) + K;
-
     % Check if the mass matrix is M-matrix
-    is_M_matrix = check_M_Matrix(K);
+    is_M_matrix = check_M_Matrix(M);
     if is_M_matrix
         disp('The mass matrix is an M-matrix.');
     else
         disp('The mass matrix is not an M-matrix.');
-        %M = lumpMassMatrix(M);
+        M = lumpMassMatrix(M);
     end
+
+    % Form the system matrix
+    A = (M / dt) + K;
 
     % Initial condition
     u = initialCondition(mesh);
@@ -88,11 +88,12 @@ function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps
     % Time-stepping loop
     for n = 1:numSteps
         % Assemble the load vector
-        % F = assembleLoadVector(mesh, feMap, u, f_r, f_t, f_d, a);
-        f_u = f(u, f_r, f_t, f_d, a);
+        F = assembleLoadVector(mesh, feMap, u, f_r, f_t, f_d, a);
+        % f_u = f(u, f_r, f_t, f_d, a);
 
         % Right-hand side vector
-        b = (M / dt) * u - M * f_u;
+        b = (M / dt) * u - F;
+        % b = (M / dt) * u - M * f_u;
 
         % Solve the linear system
         u = A \ b;
@@ -162,23 +163,6 @@ function f_u = f(u, f_r, f_t, f_d, a)
     f_u = a * (u - f_r) .* (u - f_t) .* (u - f_d);
 end
 
-% function is_M_matrix = is_M_Matrix(M)
-%     % Diagonally dominant matrix
-%     cond1 = all(2 * diag(M) >= sum(abs(M), 2));
-%     %disp(cond1);
-
-%     % Check if diagonal elements are positive
-%     cond2 = all(diag(M) > 0);
-%     %disp(cond2);
-
-%     % Check if off-diagonal elements are non-positive
-%     cond3 = all(M(~speye(size(M))) <= 0);
-%     disp(cond3);
-    
-%     % Check if the matrix is a m-matrix
-%     is_M_matrix = cond1 && cond2 && cond3;
-% end
-
 function is_M_matrix = check_M_Matrix(M)
     % Extract the diagonal elements
     diag_M = diag(M);
@@ -199,33 +183,18 @@ function is_M_matrix = check_M_Matrix(M)
         row = M(i, :);
 
         % Check diagonal dominance condition
-        if full(2 * diag_M(i) - sum(abs(row)) + 1e-10) < 0
-            disp("cond1 failed")
+        if full(2 * diag_M(i) - sum(abs(row))) < 0
             cond2 = false;
-            disp(i);
-            disp(row);
-            disp(2 * diag_M(i)-sum(abs(row)));
-            disp(sum(abs(row)));
-            disp(2 * diag_M(i));
             break;
         end
         
         % Check if off-diagonal elements are non-positive
-        % (sparse matrix automatically skips zero elements)
         row(i) = 0; % Temporarily set diagonal element to zero
-        if any(row > 1e-10)
-            disp("cond3 failed")
+        if any(row > 0)
             cond3 = false;
-            disp(i);
-            disp(row);
-            disp(row(row > 0));
             break;
         end
     end
-
-    disp(cond1);
-    disp(cond2);
-    disp(cond3);
     
     % Check if the matrix is an M-matrix
     is_M_matrix = cond1 && cond2 && cond3;
