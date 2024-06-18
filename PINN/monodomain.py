@@ -20,6 +20,8 @@ diseased_areas = [
 
 
 def pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma: torch.Tensor) -> torch.Tensor:
+    # Returns the residual between for approximate solution u
+
     # ∇·(Σ_h ∇u) + ∇·(Σ_d ∇u) - f(u) - du/dt = 0
     ux = torch.autograd.grad(u, x, grad_outputs=torch.ones_like(u), create_graph=True)[0]
     ut = torch.autograd.grad(u, t, grad_outputs=torch.ones_like(u), create_graph=True)[0]
@@ -30,20 +32,27 @@ def pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma: torch.Tensor) 
 
 
 def f(u: torch.Tensor) -> torch.Tensor:
+    # Reaction term function
     return A * (u - Fr) * (u - Ft) * (u - Fd)
 
 
 def u0(x: torch.Tensor) -> torch.Tensor:
+    # Initial conditions functions, when t=0
     return (x >= 0.9).all(dim=1).double().unsqueeze(-1)
 
 
 def neumann_bc(u: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
+    # Returns the gradient of u wrt to x, where x should be points on the 
+    # domain boundaries.
+
     # ∇u = 0
     ux = torch.autograd.grad(u, x, grad_outputs=torch.ones_like(u), create_graph=True)[0]
     return ux
 
 
 def loss_pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma: torch.Tensor, weights: torch.Tensor = None) -> torch.Tensor:
+    # Returns the PDE loss value 
+
     residual = pde(u, x, t, sigma)
     if weights is None:
         return ((residual ** 2)).mean()
@@ -52,6 +61,8 @@ def loss_pde(u: torch.Tensor, x: torch.Tensor, t: torch.Tensor, sigma: torch.Ten
 
 
 def loss_neumann(u: torch.Tensor, x: torch.Tensor, weights: torch.Tensor = None) -> torch.Tensor:
+    # Returns the Neumann boundary conditions loss value
+
     # we wanna allow gradients along the boundary so we mask them out and only penalize
     # gradients perpendicular to the boundary.
     mask = (x == 0.) | (x == 1.)
@@ -65,9 +76,8 @@ def loss_neumann(u: torch.Tensor, x: torch.Tensor, weights: torch.Tensor = None)
 
 
 def loss_ic(u, x):
+    # Returns the initial condition loss value (soft constraints)
     target = u0(x)
-    weights = torch.ones_like(target) * 0.95
-    weights[target == 0] = 0.05
 
     return torch.nn.functional.mse_loss(u, target)
 

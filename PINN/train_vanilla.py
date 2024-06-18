@@ -80,11 +80,10 @@ if __name__ == "__main__":
     for e in range(epochs):
         model.train()
         optim.zero_grad()
-        # weight_optim.zero_grad()
+        # weight_optim.zero_grad() # uncomment to train loss weights
         # point_wise_optim.zero_grad()
 
         use_hc = e > hard_ic_epochs
-        # use_hc = True
 
         u = model(x=x, t=t, hard_ic=use_hc)
 
@@ -97,8 +96,8 @@ if __name__ == "__main__":
         loss_bc = loss_neumann(ubc, xbc, weights=None)
 
 
-        loss = w_pde.to(device) * loss_domain + w_bc.to(device) * loss_bc  #+ w_ic.to(device) * loss_init
-        # loss IC
+        loss = w_pde.to(device) * loss_domain + w_bc.to(device) * loss_bc
+        # loss IC if needed (soft constraints)
         if not use_hc:
             u_ic = model(x=ic_x, t=ic_t, hard_ic=False)
             loss_init = loss_ic(u_ic, ic_x)
@@ -109,16 +108,21 @@ if __name__ == "__main__":
         loss.backward()
 
         optim.step()
-        # weight_optim.step()
+        # weight_optim.step() # uncomment to train loss weights 
         # point_wise_optim.step()
 
         weights_pde.append(w_pde.item())
         weights_bc.append(w_bc.item())
 
+        # print training stats
         if e % 10 == 0:
             progress_bar.set_description(
                 f'Loss: {loss.item()} | Pde loss {loss_domain.item()} | Bc loss {loss_bc.item()} |')
         progress_bar.update(1)
+
+
+    # -----------------
+    # Test (adam) solution on uniform grid
 
     test_data, meshgrid_shape, test_sigmas = get_test_points(50)
     test_sigmas = torch.tensor(test_sigmas).to(device).to(torch.float64)
@@ -144,6 +148,7 @@ if __name__ == "__main__":
     ax[2].legend()
     plt.show()
 
+    # -----------------
     # Train with BFGS
     bfgs = torch.optim.LBFGS(model.parameters(), history_size=40, max_iter=50, line_search_fn='strong_wolfe')
     bfgs_losses = []
@@ -153,6 +158,7 @@ if __name__ == "__main__":
     # hard_ic_epochs = bfgs_epochs // 3
 
     def closure():
+        # training step function used by BFGS
 
         bfgs.zero_grad()
 
