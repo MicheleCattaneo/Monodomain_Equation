@@ -6,7 +6,7 @@ pip install -r requirements.txt
 ```
 
 ## FEM
-To run the FEM code, you need to execute `FEM/FEM.m`. This will run a simulation of the monodomain equation using the Finite Element Method with a mesh of 256, $\Sigma_d = 0.1\Sigma_h$, with 700 timesteps ($ dt=0.05$).
+To run the FEM code, you need to execute `FEM/FEM.m`. This will run a simulation of the monodomain equation using the Finite Element Method with a mesh of 256, $\Sigma_d = 0.1\Sigma_h$, with 700 timesteps ($dt=0.05$).
 
 Results of the FEM can be found in `FEM/Videos/` for all parameter configurations.
 
