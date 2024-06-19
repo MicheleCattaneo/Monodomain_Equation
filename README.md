@@ -1,4 +1,4 @@
-# Monodomain Equation
+# Monodomain Equation 🫀
 
 To run our code, you need to have the following packages installed:
 ```bash
