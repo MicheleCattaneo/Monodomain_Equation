@@ -11,31 +11,32 @@ meshes = ["mesh_0256", "mesh_0128"];
 sigma_ds = [0.1, 1, 10] * sigma_h; % Define sigma_d
 Step_list = [700, 350]; % Number of time steps
 
-for mesh_name = meshes
-    disp(['Solving for mesh: ', mesh_name]);
-    filename = convertStringsToChars(strcat(mesh_name, ".msh"));
-    mesh = Mesh2D(filename);
-    % Define the finite element map
-    feMap = FEMap(mesh);
+% Loop through all parameters
+% for mesh_name = meshes
+%     disp(['Solving for mesh: ', mesh_name]);
+%     filename = convertStringsToChars(strcat(mesh_name, ".msh"));
+%     mesh = Mesh2D(filename);
+%     % Define the finite element map
+%     feMap = FEMap(mesh);
 
-    for sigma_d = sigma_ds
-        disp(['Solving for sigma_d = ', num2str(sigma_d)]);
-        for numSteps = Step_list
-            disp(['Solving for numSteps = ', num2str(numSteps)]);
-            videoFileName = ['solution_', convertStringsToChars(mesh_name), '_', num2str(sigma_d), '_', num2str(numSteps), '.mp4'];
-            % Solve the PDE
-            solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName);
-        end
-    end
-end  
+%     for sigma_d = sigma_ds
+%         disp(['Solving for sigma_d = ', num2str(sigma_d)]);
+%         for numSteps = Step_list
+%             disp(['Solving for numSteps = ', num2str(numSteps)]);
+%             videoFileName = ['solution_', convertStringsToChars(mesh_name), '_', num2str(sigma_d), '_', num2str(numSteps), '.mp4'];
+%             % Solve the PDE
+%             solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName);
+%         end
+%     end
+% end  
 
-% mesh = Mesh2D('mesh_0256.msh');
-% feMap = FEMap(mesh);
-% sigma_d = 0.1*sigma_h;
-% numSteps = 700;
-% videoFileName = 'solution.mp4';
+mesh = Mesh2D('mesh_0256.msh');
+feMap = FEMap(mesh);
+sigma_d = 0.1*sigma_h;
+numSteps = 700;
+videoFileName = 'solution.mp4';
 
-% solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName);
+solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName);
 
 % Main function to solve the problem
 function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps, videoFileName)
@@ -72,8 +73,6 @@ function solvePDE(mesh, feMap, sigma_h, sigma_d, a, f_r, f_t, f_d, T_f, numSteps
             disp('The lumped system matrix is not an M-matrix.');
         end
     end
-
-    return;
 
     % Form the system matrix
     A = (M / dt) + K;
