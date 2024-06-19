@@ -139,21 +139,6 @@ def get_data(num_cp=10000, num_b_cp=100):
     return ip_t, ip_x, bc_t, bc_x, simgas
 
 
-class MonodomainDataset(torch.utils.data.Dataset):
-    # Batchless  TorchLightning dataset 
-    def __init__(self, num_cp=10000, num_b_cp=100, dim=2):
-        self.ip_t, self.ip_x, self.bc_t, self.bc_x, self.e_d_masks = get_data(num_cp=num_cp, num_b_cp=num_b_cp, dim=dim)
-
-    def __len__(self):
-        return 1
-
-    def __getitem__(self, idx):
-        return list(map(
-            lambda x: torch.tensor(x).to(torch.float64).requires_grad_(True),
-            (self.ip_x, self.ip_t, self.bc_x, self.bc_t, self.e_d_masks)
-        ))
-
-
 if __name__ == '__main__':
     ip_t, ip_x, bc_t, bc_x = get_collocation_points(num_cp=10, num_b_cp=10)
 

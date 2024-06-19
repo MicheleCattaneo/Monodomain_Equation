@@ -16,6 +16,7 @@ class LearnableTanh(nn.Module):
     Learnable hyperbolic tangent module performing
     y = tanh(a * x) where a is a learnable scalar.
     '''
+
     def __init__(self):
         super().__init__()
 
@@ -23,7 +24,6 @@ class LearnableTanh(nn.Module):
 
     def forward(self, x):
         return torch.tanh(self.alpha * x)
-    
 
 
 class PINN(nn.Module):
@@ -31,6 +31,7 @@ class PINN(nn.Module):
     Simple FFNN performing y = MLP(x || rff(x)) where rff 
     is are random Fourier features and || is the concatenation operation.
     '''
+
     def __init__(self, in_size, hidden_sizes, out_size, rff_size=32) -> None:
         super().__init__()
 
@@ -64,7 +65,7 @@ class PINN(nn.Module):
 
         rff_encoded = self.rff_encoding(x_)
 
-        concatenated = torch.concatenate([x_, rff_encoded],dim=1)
+        concatenated = torch.concatenate([x_, rff_encoded], dim=1)
 
         out = self.layers(concatenated)
         if hard_ic:
